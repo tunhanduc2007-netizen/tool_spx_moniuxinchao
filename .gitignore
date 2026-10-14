@@ -1,0 +1,33 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# Environment variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Distribution / Packaging
+build/
+dist/
+*.egg-info/
+
+# Data outputs & logs
+*.log
+output/
+downloads/
+
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/settings.json
