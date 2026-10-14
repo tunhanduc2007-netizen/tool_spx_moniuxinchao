@@ -64,6 +64,17 @@ def on_startup():
     """Ensure database schema is created and initial data is seeded."""
     seed_database()
 
+@app.get("/")
+def serve_index():
+    """Serve the React Mobile App (15 screens) as default view at /."""
+    mobile_index = FRONTEND_DIST / "index.html"
+    if mobile_index.exists():
+        return FileResponse(mobile_index)
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return JSONResponse({"status": "running", "message": "Shopee Seller Pro API is ready."})
+
 @app.get("/mobile")
 def serve_mobile():
     """Serve the React Mobile App (15 screens)."""
@@ -72,13 +83,13 @@ def serve_mobile():
         return FileResponse(mobile_index)
     return JSONResponse({"error": "React mobile app not built yet. Run npm run build in frontend."})
 
-@app.get("/")
-def serve_index():
-    """Serve the Single Page Application index.html."""
+@app.get("/admin")
+def serve_admin():
+    """Serve the Desktop Management Portal at /admin."""
     index_file = STATIC_DIR / "index.html"
     if index_file.exists():
         return FileResponse(index_file)
-    return JSONResponse({"status": "running", "message": "Shopee Seller Pro API is ready."})
+    return JSONResponse({"status": "running", "message": "Shopee Seller Pro Desktop Portal is ready."})
 
 @app.get("/health")
 def health_check():

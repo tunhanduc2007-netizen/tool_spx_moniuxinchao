@@ -148,6 +148,28 @@ export default function App() {
 
         {/* View Mode Switcher */}
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <a
+            href="/admin"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+              padding: "6px 14px",
+              borderRadius: "8px",
+              backgroundColor: "#1F2937",
+              border: "1px solid #374151",
+              fontSize: "12px",
+              fontWeight: "700",
+              color: "#CBD5E1",
+              textDecoration: "none"
+            }}
+          >
+            <ExternalLink size={14} color="#60A5FA" />
+            <span>🖥 Trang Quản Trị Desktop</span>
+          </a>
+
           <div style={{
             display: "flex",
             backgroundColor: "#1F2937",
