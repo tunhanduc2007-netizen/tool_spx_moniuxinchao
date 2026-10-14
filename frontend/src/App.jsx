@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   WelcomeScreen, LoginScreen, DashboardScreen, OrdersScreen,
   OrderDetailScreen, BatchPrintScreen, PrintingProgressScreen,
   WarehouseScreen, ProductsScreen, CustomersScreen, RankingsScreen,
   ReportsScreen, StaffScreen, ShopeeApiScreen, SettingsScreen 
 } from "./components/screens";
+import { ThermalLabelModal } from "./components/ThermalLabelModal";
+import { authAPI } from "./api";
 import { 
   Smartphone, Grid, Sparkles, ZoomIn, ZoomOut, RotateCcw, 
-  ExternalLink, Layers 
+  ExternalLink, Layers, CheckCircle2, AlertCircle, Info 
 } from "lucide-react";
 
 const SCREENS = [
@@ -99,12 +101,91 @@ const PhoneDevice = ({ children, scale = 1, active = false, label = "" }) => {
 export default function App() {
   const [viewMode, setViewMode] = useState("grid"); // "interactive" or "grid"
   const [currentScreen, setCurrentScreen] = useState("dashboard");
-  const [zoomLevel, setZoomLevel] = useState(1);
+  const [activeUser, setActiveUser] = useState({
+    username: "admin",
+    full_name: "Quản Trị Viên (Admin)",
+    email: "tunhanduc2007@gmail.com",
+    role: "ADMIN"
+  });
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedOrderSns, setSelectedOrderSns] = useState(["261014SPX001VN", "261014SPX002VN", "261014SPX003VN"]);
+  const [thermalModalData, setThermalModalData] = useState(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(1);
+  const [toast, setToast] = useState(null);
+
+  // Auto ensure auth on initial load
+  useEffect(() => {
+    authAPI.ensureAuth().then((u) => {
+      if (u) setActiveUser(u);
+    }).catch(() => {});
+  }, []);
+
+  const triggerToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast(null);
+    }, 3500);
+  };
+
+  const handleNavigate = (screenId, payload = null) => {
+    if (payload) {
+      if (payload.order) setSelectedOrder(payload.order);
+      if (payload.orderSns) setSelectedOrderSns(payload.orderSns);
+      if (payload.labelData) setThermalModalData(payload.labelData);
+    }
+    setCurrentScreen(screenId);
+  };
 
   const CurrentComponent = SCREENS.find(s => s.id === currentScreen)?.component || DashboardScreen;
 
+  const screenProps = {
+    activeUser,
+    setActiveUser,
+    selectedOrder,
+    onSelectOrder: (order) => setSelectedOrder(order),
+    selectedOrderSns,
+    onSelectOrderSns: (sns) => setSelectedOrderSns(sns),
+    onOpenPrintModal: (labelData) => setThermalModalData(labelData),
+    refreshTrigger,
+    onDataChanged: () => setRefreshTrigger(prev => prev + 1),
+    onToast: triggerToast,
+  };
+
   return (
-    <div style={{ minHeight: "100vh", backgroundColor: "#090D16", color: "#F8FAFC", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", backgroundColor: "#090D16", color: "#F8FAFC", display: "flex", flexDirection: "column", position: "relative" }}>
+      {/* Toast Notification Alert */}
+      {toast && (
+        <div style={{
+          position: "fixed",
+          top: "20px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2000,
+          backgroundColor: toast.type === "error" ? "#EF4444" : "#10B981",
+          color: "#FFFFFF",
+          padding: "10px 20px",
+          borderRadius: "12px",
+          fontSize: "13px",
+          fontWeight: "700",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          boxShadow: "0 10px 25px rgba(0,0,0,0.4)",
+          animation: "fadeIn 0.2s ease"
+        }}>
+          {toast.type === "error" ? <AlertCircle size={16} /> : <CheckCircle2 size={16} />}
+          <span>{toast.message}</span>
+        </div>
+      )}
+
+      {/* Printable Thermal Label Modal */}
+      {thermalModalData && (
+        <ThermalLabelModal 
+          labelData={thermalModalData} 
+          onClose={() => setThermalModalData(null)} 
+        />
+      )}
+
       {/* Top App Control Bar */}
       <header style={{
         padding: "14px 24px",
@@ -141,7 +222,7 @@ export default function App() {
               Shopee Seller Pro Mobile UI (React)
             </h1>
             <p style={{ fontSize: "11px", color: "#9CA3AF" }}>
-              Thiết kế giao diện 15 màn hình chuẩn điện thoại theo đúng ảnh mẫu
+              Hệ thống 15 màn hình hoàn chỉnh • Đầy đủ tính năng thực tế • Kết nối Database & API
             </p>
           </div>
         </div>
@@ -233,7 +314,7 @@ export default function App() {
         <span style={{ fontSize: "11px", fontWeight: "700", color: "#64748B", textTransform: "uppercase", whiteSpace: "nowrap" }}>
           Chọn nhanh:
         </span>
-        {SCREENS.map((s, idx) => (
+        {SCREENS.map((s) => (
           <button
             key={s.id}
             onClick={() => {
@@ -286,11 +367,14 @@ export default function App() {
             </div>
 
             <PhoneDevice active={true}>
-              <CurrentComponent onNavigate={(screenId) => setCurrentScreen(screenId)} />
+              <CurrentComponent 
+                {...screenProps}
+                onNavigate={handleNavigate} 
+              />
             </PhoneDevice>
 
             <div style={{ marginTop: "24px", color: "#64748B", fontSize: "12px", textAlign: "center" }}>
-              💡 Mẹo: Bạn có thể bấm trực tiếp vào các nút, tab hoặc link bên trong màn hình điện thoại để trải nghiệm chuyển trang!
+              💡 Mẹo: Bạn có thể bấm trực tiếp vào các nút, tab hoặc link bên trong màn hình điện thoại để trải nghiệm chuyển trang và thao tác thực tế!
             </div>
           </div>
         ) : (
@@ -318,10 +402,13 @@ export default function App() {
                     title="Bấm để mở màn hình này ở chế độ tương tác"
                   >
                     <PhoneDevice label={s.title}>
-                      <ScreenComp onNavigate={(screenId) => {
-                        setCurrentScreen(screenId);
-                        setViewMode("interactive");
-                      }} />
+                      <ScreenComp 
+                        {...screenProps}
+                        onNavigate={(screenId, payload) => {
+                          handleNavigate(screenId, payload);
+                          setViewMode("interactive");
+                        }} 
+                      />
                     </PhoneDevice>
                   </div>
                 );

@@ -44,44 +44,59 @@ export const ShopeeLogo = ({ size = 28, className = "" }) => (
 );
 
 /**
- * iPhone Status Bar (9:41, Cellular, WiFi, Battery)
+ * iPhone Status Bar (Dynamic time, Cellular, WiFi, Battery)
  */
-export const StatusBar = ({ dark = true }) => (
-  <div style={{
-    height: "36px",
-    padding: "0 18px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    fontSize: "12px",
-    fontWeight: "700",
-    color: dark ? "#0F172A" : "#FFFFFF",
-    zIndex: 30,
-    backgroundColor: "transparent",
-    flexShrink: 0,
-    userSelect: "none"
-  }}>
-    <span>9:41</span>
+export const StatusBar = ({ dark = true }) => {
+  const [time, setTime] = React.useState(() => {
+    const d = new Date();
+    return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
+  });
+
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      const d = new Date();
+      setTime(`${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
     <div style={{
-      width: "80px",
-      height: "18px",
-      backgroundColor: dark ? "#0F172A" : "#000000",
-      borderRadius: "999px",
-      position: "relative",
+      height: "36px",
+      padding: "0 18px",
       display: "flex",
       alignItems: "center",
-      justifyContent: "flex-end",
-      paddingRight: "6px"
+      justifyContent: "space-between",
+      fontSize: "12px",
+      fontWeight: "700",
+      color: dark ? "#0F172A" : "#FFFFFF",
+      zIndex: 30,
+      backgroundColor: "transparent",
+      flexShrink: 0,
+      userSelect: "none"
     }}>
-      <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#10B981", opacity: 0.8 }}></div>
+      <span>{time}</span>
+      <div style={{
+        width: "80px",
+        height: "18px",
+        backgroundColor: dark ? "#0F172A" : "#000000",
+        borderRadius: "999px",
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        paddingRight: "6px"
+      }}>
+        <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#10B981", opacity: 0.8 }}></div>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+        <Signal size={12} strokeWidth={2.5} />
+        <Wifi size={12} strokeWidth={2.5} />
+        <Battery size={15} strokeWidth={2.5} />
+      </div>
     </div>
-    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-      <Signal size={12} strokeWidth={2.5} />
-      <Wifi size={12} strokeWidth={2.5} />
-      <Battery size={15} strokeWidth={2.5} />
-    </div>
-  </div>
-);
+  );
+};
 
 /**
  * Reusable Mobile Bottom Navigation Bar (5 tabs)
