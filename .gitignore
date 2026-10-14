@@ -31,3 +31,4 @@ downloads/
 .idea/
 .vscode/*
 !.vscode/settings.json
+data/*.db
