@@ -77,11 +77,29 @@ def serve_index():
 
 @app.get("/mobile")
 def serve_mobile():
-    """Serve the React Mobile App (15 screens)."""
+    """Serve the React Mobile App."""
     mobile_index = FRONTEND_DIST / "index.html"
     if mobile_index.exists():
         return FileResponse(mobile_index)
     return JSONResponse({"error": "React mobile app not built yet. Run npm run build in frontend."})
+
+SCREEN_ROUTES = {
+    "welcome", "login", "dashboard", "orders", "order-detail",
+    "batch-print", "printing-progress", "warehouse", "products",
+    "customers", "rankings", "reports", "staff", "shopee-api", "settings"
+}
+
+@app.get("/{screen_name}")
+def serve_screen(screen_name: str):
+    """Support bookmarking and direct links to any of the 15 screens."""
+    if screen_name in SCREEN_ROUTES:
+        mobile_index = FRONTEND_DIST / "index.html"
+        if mobile_index.exists():
+            return FileResponse(mobile_index)
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return JSONResponse({"error": "Not found"}, status_code=404)
 
 @app.get("/admin")
 def serve_admin():
