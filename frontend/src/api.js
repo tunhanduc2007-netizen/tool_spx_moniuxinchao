@@ -44,46 +44,27 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify({ username_or_email, password, remember_me: true })
     }),
-  getMe: () => request("/api/auth/me"),
+  shopeeSellerLogin: (data = {}) =>
+    request("/api/auth/shopee-seller-login", {
+      method: "POST",
+      body: JSON.stringify(data)
+    }),
+  getShopeeOAuthUrl: () => request("/api/auth/shopee-oauth-url"),
   logout: () => {
     removeToken();
     return request("/api/auth/logout", { method: "POST" }).catch(() => ({}));
   },
   ensureAuth: async () => {
     let token = getToken();
-    if (!token) {
-      try {
-        const res = await request("/api/auth/login", {
-          method: "POST",
-          body: JSON.stringify({
-            username_or_email: "tunhanduc2007@gmail.com",
-            password: "Admin@123456",
-            remember_me: true
-          })
-        });
-        if (res && res.access_token) {
-          setToken(res.access_token);
-          return res.user;
-        }
-      } catch (e) {
-        console.warn("Auto-login fallback note:", e);
-      }
-    } else {
+    if (token) {
       try {
         const me = await request("/api/auth/me");
         if (me && me.user) return me.user;
       } catch (e) {
-        // if token invalid, refresh with admin
         removeToken();
-        return authAPI.ensureAuth();
       }
     }
-    return {
-      username: "admin",
-      full_name: "Quản Trị Viên (Admin)",
-      email: "tunhanduc2007@gmail.com",
-      role: "ADMIN"
-    };
+    return null;
   }
 };
 
@@ -91,6 +72,7 @@ export const authAPI = {
 export const ordersAPI = {
   list: (status = "ALL", search = "") => 
     request(`/api/orders?status=${encodeURIComponent(status)}&search=${encodeURIComponent(search)}`),
+  unprinted: () => request("/api/orders?is_printed=false"),
   detail: (id) => request(`/api/orders/${id}`),
   updateStatus: (id, order_status) => 
     request(`/api/orders/${id}/status`, {
@@ -98,6 +80,7 @@ export const ordersAPI = {
       body: JSON.stringify({ order_status })
     }),
 };
+
 
 // Batch Print API
 export const printAPI = {

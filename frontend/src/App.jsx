@@ -6,7 +6,7 @@ import {
   ReportsScreen, StaffScreen, ShopeeApiScreen, SettingsScreen 
 } from "./components/screens";
 import { ThermalLabelModal } from "./components/ThermalLabelModal";
-import { authAPI } from "./api";
+import { authAPI, getToken } from "./api";
 import { CheckCircle2, AlertCircle } from "lucide-react";
 
 const SCREENS = [
@@ -39,19 +39,14 @@ function getInitialScreen() {
   if (path && SCREENS.some(s => s.id === path)) {
     return path;
   }
-  return "dashboard";
+  return getToken() ? "dashboard" : "login";
 }
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState(getInitialScreen);
-  const [activeUser, setActiveUser] = useState({
-    username: "admin",
-    full_name: "Quản Trị Viên (Admin)",
-    email: "tunhanduc2007@gmail.com",
-    role: "ADMIN"
-  });
+  const [activeUser, setActiveUser] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [selectedOrderSns, setSelectedOrderSns] = useState(["261014SPX001VN", "261014SPX002VN", "261014SPX003VN"]);
+  const [selectedOrderSns, setSelectedOrderSns] = useState([]);
   const [thermalModalData, setThermalModalData] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(1);
   const [toast, setToast] = useState(null);
@@ -59,7 +54,11 @@ export default function App() {
   // Auto authenticate and ensure user session
   useEffect(() => {
     authAPI.ensureAuth().then((u) => {
-      if (u) setActiveUser(u);
+      if (u) {
+        setActiveUser(u);
+      } else {
+        setActiveUser(null);
+      }
     }).catch(() => {});
   }, []);
 
