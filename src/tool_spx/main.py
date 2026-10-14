@@ -91,6 +91,17 @@ def serve_admin():
         return FileResponse(index_file)
     return JSONResponse({"status": "running", "message": "Shopee Seller Pro Desktop Portal is ready."})
 
+@app.get("/favicon.svg")
+def serve_favicon():
+    """Serve favicon.svg."""
+    fav = FRONTEND_DIST / "favicon.svg"
+    if fav.exists():
+        return FileResponse(fav)
+    fav_pub = Path(__file__).resolve().parent.parent.parent / "frontend" / "public" / "favicon.svg"
+    if fav_pub.exists():
+        return FileResponse(fav_pub)
+    return JSONResponse({}, status_code=204)
+
 @app.get("/health")
 def health_check():
     """System health check endpoint."""

@@ -4,10 +4,9 @@
   "description": "Shopee Seller Pro - Mobile App & Management System",
   "private": true,
   "scripts": {
-    "start": "node -e \"setTimeout(() => require('child_process').exec('open http://localhost:8000'), 1200)\" & uv run tool-spx",
+    "start": "uv run tool-spx",
     "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm run build",
-    "server": "uv run tool-spx"
+    "build": "cd frontend && npm run build"
   },
   "keywords": [
     "shopee",

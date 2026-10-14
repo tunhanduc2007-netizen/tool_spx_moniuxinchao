@@ -6,7 +6,7 @@ import {
   ArrowLeft, Bell, Filter, Search, ChevronDown, Check, 
   MapPin, Phone, User, Share2, MoreHorizontal, CheckCircle2, 
   Circle, Plus, Eye, EyeOff, Lock, Mail, ChevronRight, Store, 
-  Printer, Shield, Key, LogOut, RefreshCw, AlertCircle
+  Printer, Shield, Key, LogOut, RefreshCw, AlertCircle, Link
 } from "lucide-react";
 
 /**
