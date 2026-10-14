@@ -53,10 +53,24 @@ STATIC_DIR.mkdir(exist_ok=True)
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+# Mount React Mobile App (frontend/dist)
+FRONTEND_DIST = Path(__file__).resolve().parent.parent.parent / "frontend" / "dist"
+if FRONTEND_DIST.exists() and (FRONTEND_DIST / "assets").exists():
+    app.mount("/mobile/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="mobile_assets")
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIST / "assets"), name="root_assets")
+
 @app.on_event("startup")
 def on_startup():
     """Ensure database schema is created and initial data is seeded."""
     seed_database()
+
+@app.get("/mobile")
+def serve_mobile():
+    """Serve the React Mobile App (15 screens)."""
+    mobile_index = FRONTEND_DIST / "index.html"
+    if mobile_index.exists():
+        return FileResponse(mobile_index)
+    return JSONResponse({"error": "React mobile app not built yet. Run npm run build in frontend."})
 
 @app.get("/")
 def serve_index():

@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --primary-orange: #EE4D2D;
+  --primary-orange-light: #FFF1EC;
+  --primary-orange-gradient: linear-gradient(135deg, #FF5722 0%, #EE4D2D 100%);
+  --bg-app: #F8F9FA;
+  --bg-card: #FFFFFF;
+  --text-dark: #1E293B;
+  --text-sub: #64748B;
+  --text-muted: #94A3B8;
+  --border-light: #EDF2F7;
+  --border-subtle: #E2E8F0;
+  --success-green: #10B981;
+  --success-light: #ECFDF5;
+  --info-blue: #3B82F6;
+  --info-light: #EFF6FF;
+  --warning-amber: #F59E0B;
+  --danger-red: #EF4444;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background-color: #0F172A;
+  color: #F8FAFC;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Hide scrollbar in mobile screen body */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
