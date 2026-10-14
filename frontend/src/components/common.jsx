@@ -44,62 +44,14 @@ export const ShopeeLogo = ({ size = 28, className = "" }) => (
 );
 
 /**
- * iPhone Status Bar (Dynamic time, Cellular, WiFi, Battery)
+ * Mobile Top Spacer (Seamless native safe-area)
  */
-export const StatusBar = ({ dark = true }) => {
-  const [time, setTime] = React.useState(() => {
-    const d = new Date();
-    return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
-  });
-
-  React.useEffect(() => {
-    const timer = setInterval(() => {
-      const d = new Date();
-      setTime(`${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`);
-    }, 15000);
-    return () => clearInterval(timer);
-  }, []);
-
-  return (
-    <div style={{
-      height: "36px",
-      padding: "0 18px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      fontSize: "12px",
-      fontWeight: "700",
-      color: dark ? "#0F172A" : "#FFFFFF",
-      zIndex: 30,
-      backgroundColor: "transparent",
-      flexShrink: 0,
-      userSelect: "none"
-    }}>
-      <span>{time}</span>
-      <div style={{
-        width: "80px",
-        height: "18px",
-        backgroundColor: dark ? "#0F172A" : "#000000",
-        borderRadius: "999px",
-        position: "relative",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "flex-end",
-        paddingRight: "6px"
-      }}>
-        <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#10B981", opacity: 0.8 }}></div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
-        <Signal size={12} strokeWidth={2.5} />
-        <Wifi size={12} strokeWidth={2.5} />
-        <Battery size={15} strokeWidth={2.5} />
-      </div>
-    </div>
-  );
-};
+export const StatusBar = () => (
+  <div style={{ height: "6px", width: "100%", backgroundColor: "transparent", flexShrink: 0 }} />
+);
 
 /**
- * Reusable Mobile Bottom Navigation Bar (5 tabs)
+ * Reusable Mobile Bottom Navigation Bar (5 tabs, sticky bottom)
  */
 export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
   const tabs = [
@@ -107,7 +59,7 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
     { id: "orders", label: "Đơn hàng", icon: Package },
     { id: "warehouse", label: "Kho hàng", icon: Warehouse },
     { id: "products", label: "Sản phẩm", icon: Tag },
-    { id: "more", label: "Thêm", icon: MoreHorizontal },
+    { id: "more", label: "Cài đặt", icon: Settings },
   ];
 
   return (
@@ -119,9 +71,13 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
       alignItems: "center",
       justifyContent: "space-around",
       padding: "0 4px",
-      position: "relative",
-      zIndex: 20,
-      flexShrink: 0
+      position: "sticky",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 40,
+      flexShrink: 0,
+      boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.04)"
     }}>
       {tabs.map((tab) => {
         const Icon = tab.icon;
@@ -138,13 +94,13 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
               alignItems: "center",
               gap: "3px",
               cursor: "pointer",
-              padding: "4px 8px",
+              padding: "6px 8px",
               color: isActive ? "#EE4D2D" : "#94A3B8",
               transition: "all 0.15s ease",
               flex: 1
             }}
           >
-            <Icon size={19} strokeWidth={isActive ? 2.4 : 1.8} />
+            <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
             <span style={{ fontSize: "10px", fontWeight: isActive ? "700" : "500", lineHeight: 1 }}>
               {tab.label}
             </span>
@@ -154,3 +110,4 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
     </div>
   );
 };
+

@@ -19,7 +19,7 @@ import {
  * =========================================================================
  */
 export const WelcomeScreen = ({ onNavigate }) => (
-  <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#FFF7F4", position: "relative" }}>
+  <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#FFF7F4", position: "relative" }}>
     <StatusBar dark={true} />
     
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 24px", textAlign: "center" }}>
@@ -198,7 +198,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#FFFFFF" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#FFFFFF" }}>
       <StatusBar dark={true} />
       
       {/* Header */}
@@ -409,7 +409,7 @@ export const DashboardScreen = ({ onNavigate, activeUser, refreshTrigger, onOpen
   const userName = activeUser?.full_name ? activeUser.full_name.split(" ").slice(-1)[0] : "Admin";
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       {/* Top Header */}
@@ -751,7 +751,7 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       {/* Header */}
@@ -1016,7 +1016,7 @@ export const OrderDetailScreen = ({ onNavigate, selectedOrder, onToast, onOpenPr
   const isProcessed = order.order_status === "PROCESSED" || order.order_status === "SHIPPED";
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       {/* Header */}
@@ -1185,7 +1185,7 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
@@ -1380,7 +1380,7 @@ export const PrintingProgressScreen = ({ onNavigate, selectedOrderSns, onOpenPri
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#FFFFFF" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#FFFFFF" }}>
       <StatusBar dark={true} />
 
       {/* Header */}
@@ -1526,7 +1526,7 @@ export const WarehouseScreen = ({ onNavigate, onToast, onDataChanged }) => {
   );
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       {/* Header */}
@@ -1710,7 +1710,7 @@ export const ProductsScreen = ({ onNavigate, onToast }) => {
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       {/* Header */}
@@ -1826,7 +1826,7 @@ export const CustomersScreen = ({ onNavigate }) => {
   }, [tab, search]);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
@@ -1939,7 +1939,7 @@ export const RankingsScreen = ({ onNavigate }) => {
   }, []);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
@@ -2044,7 +2044,7 @@ export const ReportsScreen = ({ onNavigate }) => {
   }, []);
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
@@ -2182,7 +2182,7 @@ export const StaffScreen = ({ onNavigate, onToast, onDataChanged }) => {
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
@@ -2325,7 +2325,7 @@ export const ShopeeApiScreen = ({ onNavigate, onToast }) => {
   };
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
@@ -2473,7 +2473,7 @@ export const SettingsScreen = ({ onNavigate, activeUser, onToast, setActiveUser 
   ];
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
       <StatusBar dark={true} />
 
       <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
