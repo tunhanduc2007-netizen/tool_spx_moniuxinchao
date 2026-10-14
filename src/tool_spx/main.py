@@ -1,0 +1,85 @@
+"""FastAPI Application Entrypoint for Shopee Seller Pro."""
+
+from pathlib import Path
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse, JSONResponse
+from tool_spx.config import settings
+from tool_spx.db.seed import seed_database
+from tool_spx.api.auth_router import router as auth_router
+from tool_spx.api.users_router import router as users_router
+from tool_spx.api.shopee_router import router as shopee_router
+from tool_spx.api.orders_router import router as orders_router
+from tool_spx.api.print_router import router as print_router
+from tool_spx.api.products_router import router as products_router
+from tool_spx.api.warehouse_router import router as warehouse_router
+from tool_spx.api.customers_router import router as customers_router
+from tool_spx.api.reports_router import router as reports_router
+from tool_spx.api.settings_router import router as settings_router
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description="Hệ thống quản lý bán hàng Shopee Seller Pro - Shopee Open Platform & Kho Vận SPX Express"
+)
+
+# CORS Middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include All API Routers
+app.include_router(auth_router)
+app.include_router(users_router)
+app.include_router(shopee_router)
+app.include_router(orders_router)
+app.include_router(print_router)
+app.include_router(products_router)
+app.include_router(warehouse_router)
+app.include_router(customers_router)
+app.include_router(reports_router)
+app.include_router(settings_router)
+
+# Mount Static Files
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+STATIC_DIR.mkdir(exist_ok=True)
+(STATIC_DIR / "css").mkdir(exist_ok=True)
+(STATIC_DIR / "js").mkdir(exist_ok=True)
+
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+@app.on_event("startup")
+def on_startup():
+    """Ensure database schema is created and initial data is seeded."""
+    seed_database()
+
+@app.get("/")
+def serve_index():
+    """Serve the Single Page Application index.html."""
+    index_file = STATIC_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file)
+    return JSONResponse({"status": "running", "message": "Shopee Seller Pro API is ready."})
+
+@app.get("/health")
+def health_check():
+    """System health check endpoint."""
+    return {
+        "status": "healthy",
+        "app": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT
+    }
+
+def start():
+    """Start uvicorn server directly."""
+    import uvicorn
+    uvicorn.run("tool_spx.main:app", host=settings.HOST, port=settings.PORT, reload=True)
+
+if __name__ == "__main__":
+    start()
