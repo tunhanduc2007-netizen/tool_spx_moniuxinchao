@@ -25,19 +25,23 @@ export const WelcomeScreen = ({ onNavigate }) => (
     <StatusBar dark={true} />
     
     <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 24px", textAlign: "center" }}>
-      {/* Shopee Logo */}
+      {/* Mon Iu Xin Chào Logo */}
       <div style={{ marginBottom: "14px" }}>
-        <ShopeeLogo size={54} />
+        <img 
+          src="/apple-touch-icon.png" 
+          alt="Mon Iu Xin Chào" 
+          style={{ width: "64px", height: "64px", borderRadius: "16px", objectFit: "cover", boxShadow: "0 6px 16px rgba(238, 77, 45, 0.3)" }} 
+        />
       </div>
 
       <h1 style={{ fontSize: "21px", fontWeight: "800", color: "#1E293B", letterSpacing: "-0.02em" }}>
-        Shopee Seller Pro
+        Mon Iu Xin Chào!!!
       </h1>
       <p style={{ fontSize: "12px", fontWeight: "600", color: "#64748B", marginTop: "3px" }}>
-        Kênh Người Bán Shopee & Tự động hoá Vận đơn SPX
+        BABY AND KID SHOP • Đại lý chính hãng NOUS
       </p>
       <p style={{ fontSize: "11px", color: "#94A3B8", marginTop: "1px" }}>
-        Kết nối trực tiếp Shopee Open Platform v2
+        Kênh Người Bán Shopee (minhhy:bubu.237) & In Vận Đơn SPX
       </p>
 
       {/* 3D Illustration Mockup */}
@@ -1030,8 +1034,8 @@ export const DashboardScreen = ({ onNavigate, activeUser, refreshTrigger, onOpen
       {/* Top Header */}
       <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <ShopeeLogo size={22} />
-          <span style={{ fontSize: "13px", fontWeight: "800", color: "#0F172A" }}>Shopee Seller Pro</span>
+          <img src="/apple-touch-icon.png" alt="Mon Iu Xin Chào" style={{ width: "24px", height: "24px", borderRadius: "6px", objectFit: "cover" }} />
+          <span style={{ fontSize: "13px", fontWeight: "800", color: "#0F172A" }}>Mon Iu Xin Chào!!!</span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
           <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onNavigate("settings")}>
@@ -1085,25 +1089,21 @@ export const DashboardScreen = ({ onNavigate, activeUser, refreshTrigger, onOpen
           {/* Shop Name & Avatar */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "10px", paddingBottom: "8px", borderBottom: "1px solid #F8FAFC" }}>
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-              <div style={{
-                width: "36px",
-                height: "36px",
-                borderRadius: "50%",
-                backgroundColor: "#EE4D2D",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#FFFFFF",
-                fontWeight: "800",
-                fontSize: "15px",
-                boxShadow: "0 2px 6px rgba(238, 77, 45, 0.35)",
-                border: "2px solid #FFF1EC"
-              }}>
-                👶
-              </div>
+              <img
+                src="/apple-touch-icon.png"
+                alt="Mon Iu Xin Chào"
+                style={{
+                  width: "38px",
+                  height: "38px",
+                  borderRadius: "50%",
+                  objectFit: "cover",
+                  boxShadow: "0 2px 6px rgba(238, 77, 45, 0.35)",
+                  border: "2px solid #FFF1EC"
+                }}
+              />
               <div>
                 <div style={{ fontSize: "13.5px", fontWeight: "800", color: "#0F172A", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>minhhy:bubu.237</span>
+                  <span>Mon Iu Xin Chào (minhhy:bubu.237)</span>
                   <span style={{ fontSize: "9px", backgroundColor: "#EFF6FF", color: "#2563EB", padding: "1px 5px", borderRadius: "4px", fontWeight: "700" }}>
                     Đại lý NOUS
                   </span>

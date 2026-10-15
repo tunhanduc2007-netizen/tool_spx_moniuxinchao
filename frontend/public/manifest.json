@@ -1,0 +1,29 @@
+{
+  "name": "Mon Iu Xin Chào!!!",
+  "short_name": "Mon Iu Xin Chào!!!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FF5252",
+  "theme_color": "#FF5252",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
