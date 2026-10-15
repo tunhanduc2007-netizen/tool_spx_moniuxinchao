@@ -8,17 +8,17 @@ export const ThermalLabelModal = ({ labelData, onClose }) => {
   const trackingNumber = labelData.tracking_number || `SPX${orderSn.slice(-8)}VN`;
   const carrier = labelData.shipping_carrier || "SPX Express";
   const sender = labelData.sender || {
-    name: "SPX Flagship Store",
-    phone: "024 3888 9999",
-    address: "Số 88 Ngõ 192 Lê Trọng Tấn, Q. Hoàng Mai, Hà Nội"
+    name: "Bubu Baby (minhhy:bubu.237)",
+    phone: "0908 237 888",
+    address: "Kho Bubu Baby - Phân Phối NOUS Chính Hãng, TP. Hà Nội"
   };
   const recipient = labelData.recipient || {
-    name: "Hoàng Minh Tuấn",
+    name: "Nguyễn Hải Yến",
     phone: "0912 345 678",
-    address: "Số 15 Ngõ 45 Cầu Giấy, Q. Cầu Giấy, Hà Nội"
+    address: "Tòa S2.05 VinHomes Smart City, P. Tây Mỗ, Q. Nam Từ Liêm, Hà Nội"
   };
   const items = labelData.items || [
-    { item_name: "Áo Thun Nam Cotton Form Rộng", model_name: "Đen / L", quantity: 2, price: 149000 }
+    { item_name: "NOUS Set 5 Khăn Sữa Bamboo/ Muslin Mềm Mịn Cho Bé Sơ Sinh", model_name: "Set 5 Khăn / Trắng Họa Tiết", quantity: 1, price: 168070 }
   ];
   const isCod = labelData.is_cod !== false;
   const totalAmount = labelData.total_amount || 298000;
