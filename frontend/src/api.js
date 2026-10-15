@@ -3,7 +3,7 @@ const isLocalhost = typeof window !== "undefined" &&
 
 const API_BASE = isLocalhost 
   ? (window.location.port === "8000" ? "" : "http://127.0.0.1:8000")
-  : (import.meta.env.VITE_API_BASE || "");
+  : (typeof import.meta !== "undefined" && import.meta.env ? import.meta.env.VITE_API_BASE || "" : "");
 
 export const getToken = () => localStorage.getItem("shopee_token") || "";
 export const setToken = (t) => localStorage.setItem("shopee_token", t);
