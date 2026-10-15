@@ -86,3 +86,34 @@ html, body {
 button:active {
   transform: scale(0.985);
 }
+
+/* Completely hide and remove Netlify Badge, HUD, and Drawer */
+netlify-badge,
+netlify-hud,
+nl-badge,
+nl-hud,
+[data-netlify-site-id],
+.netlify-badge,
+.nl-badge,
+[class*="netlify-badge"],
+[id*="netlify-badge"],
+[class*="nl-badge"],
+[id*="nl-badge"],
+[class*="nl-hud"],
+[id*="nl-hud"],
+iframe[src*="netlify"],
+a[href*="netlify.com"],
+div:has(> a[href*="netlify.com"]),
+div:has(> [class*="netlify"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  height: 0 !important;
+  width: 0 !important;
+  position: absolute !important;
+  top: -99999px !important;
+  left: -99999px !important;
+  z-index: -9999 !important;
+}
+

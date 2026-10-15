@@ -26,6 +26,62 @@
 
     <!-- Web App Manifest -->
     <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Completely hide and suppress Netlify Badge / HUD -->
+    <style>
+      netlify-badge,
+      netlify-hud,
+      nl-badge,
+      nl-hud,
+      [data-netlify-site-id],
+      .netlify-badge,
+      .nl-badge,
+      [class*="netlify-badge"],
+      [id*="netlify-badge"],
+      [class*="nl-badge"],
+      [id*="nl-badge"],
+      [class*="nl-hud"],
+      [id*="nl-hud"],
+      iframe[src*="netlify"],
+      a[href*="netlify.com"],
+      div:has(> a[href*="netlify.com"]),
+      div:has(> [class*="netlify"]) {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+        height: 0 !important;
+        width: 0 !important;
+        position: absolute !important;
+        top: -99999px !important;
+        left: -99999px !important;
+        z-index: -9999 !important;
+      }
+    </style>
+    <script>
+      (function() {
+        try {
+          class EmptyElement extends HTMLElement {
+            connectedCallback() { this.remove(); }
+          }
+          customElements.define('netlify-badge', EmptyElement);
+          customElements.define('netlify-hud', EmptyElement);
+          customElements.define('nl-badge', EmptyElement);
+          customElements.define('nl-hud', EmptyElement);
+        } catch(e) {}
+        var clean = function() {
+          var nodes = document.querySelectorAll('netlify-badge, netlify-hud, nl-badge, nl-hud, [data-netlify-site-id], script[src*="netlify/scripts/hud"], iframe[src*="netlify"], .netlify-badge');
+          for (var i = 0; i < nodes.length; i++) {
+            nodes[i].remove();
+          }
+        };
+        if (window.MutationObserver) {
+          new MutationObserver(clean).observe(document.documentElement, { childList: true, subtree: true });
+        }
+        document.addEventListener('DOMContentLoaded', clean);
+        window.addEventListener('load', clean);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
