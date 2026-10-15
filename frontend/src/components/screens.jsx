@@ -1029,36 +1029,37 @@ export const DashboardScreen = ({ onNavigate, activeUser, refreshTrigger, onOpen
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      {/* Top Header */}
-      <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <img src="/apple-touch-icon.png" alt="Mon Iu Xin Chào" style={{ width: "24px", height: "24px", borderRadius: "6px", objectFit: "cover" }} />
-          <span style={{ fontSize: "13px", fontWeight: "800", color: "#0F172A" }}>Mon Iu Xin Chào!!!</span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onNavigate("settings")}>
-            <Bell size={18} color="#475569" />
-            <div style={{ position: "absolute", top: "-2px", right: "-2px", width: "7px", height: "7px", backgroundColor: "#EE4D2D", borderRadius: "50%" }}></div>
+      {/* Pinned Top Header */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <img src="/apple-touch-icon.png" alt="Mon Iu Xin Chào" style={{ width: "24px", height: "24px", borderRadius: "6px", objectFit: "cover" }} />
+            <span style={{ fontSize: "13px", fontWeight: "800", color: "#0F172A" }}>Mon Iu Xin Chào!!!</span>
           </div>
-          <div 
-            onClick={() => onNavigate("settings")}
-            style={{
-              width: "26px",
-              height: "26px",
-              borderRadius: "50%",
-              backgroundColor: "#EE4D2D",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "11px",
-              fontWeight: "700",
-              cursor: "pointer"
-            }}
-          >
-            {userName[0]}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div style={{ position: "relative", cursor: "pointer" }} onClick={() => onNavigate("settings")}>
+              <Bell size={18} color="#475569" />
+              <div style={{ position: "absolute", top: "-2px", right: "-2px", width: "7px", height: "7px", backgroundColor: "#EE4D2D", borderRadius: "50%" }}></div>
+            </div>
+            <div 
+              onClick={() => onNavigate("settings")}
+              style={{
+                width: "26px",
+                height: "26px",
+                borderRadius: "50%",
+                backgroundColor: "#EE4D2D",
+                color: "#fff",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: "11px",
+                fontWeight: "700",
+                cursor: "pointer"
+              }}
+            >
+              {userName[0]}
+            </div>
           </div>
         </div>
       </div>
@@ -1594,76 +1595,78 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      {/* Header */}
-      <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-        <h2 style={{ fontSize: "15px", fontWeight: "800", color: "#0F172A" }}>Đơn hàng ({orders.length})</h2>
-        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          <div 
-            onClick={handleSyncShopee}
-            style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#EE4D2D", cursor: syncing ? "wait" : "pointer" }}
-          >
-            <RefreshCw size={13} className={syncing ? "spin" : ""} />
-            <span>Đồng bộ API</span>
-          </div>
-          <div 
-            onClick={() => onNavigate("batch-print")}
-            style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#EE4D2D", cursor: "pointer" }}
-          >
-            <Printer size={14} />
-            <span>In hàng loạt</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Search Input */}
-      <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          backgroundColor: "#F1F5F9",
-          borderRadius: "8px",
-          padding: "0 10px",
-          height: "36px"
-        }}>
-          <Search size={14} color="#94A3B8" />
-          <input 
-            type="text" 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm mã đơn, tên khách, mã vận đơn..." 
-            style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px", color: "#1E293B" }}
-          />
-        </div>
-
-        {/* Filter Pills */}
-        <div style={{ display: "flex", gap: "6px", marginTop: "8px", overflowX: "auto", paddingBottom: "2px" }} className="no-scrollbar">
-          {[
-            { id: "ALL", label: "Tất cả" },
-            { id: "READY_TO_SHIP", label: "Chờ xử lý" },
-            { id: "PROCESSED", label: "Đang đóng gói" },
-            { id: "SHIPPED", label: "Đang giao" },
-            { id: "COMPLETED", label: "Đã giao" },
-          ].map(f => (
-            <button
-              key={f.id}
-              onClick={() => setFilterTab(f.id)}
-              style={{
-                border: "none",
-                borderRadius: "99px",
-                padding: "4px 10px",
-                fontSize: "11px",
-                fontWeight: "600",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                backgroundColor: filterTab === f.id ? "#EE4D2D" : "#F1F5F9",
-                color: filterTab === f.id ? "#FFFFFF" : "#64748B"
-              }}
+      {/* Pinned Top Header & Search Filters */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        {/* Header */}
+        <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <h2 style={{ fontSize: "15px", fontWeight: "800", color: "#0F172A" }}>Đơn hàng ({orders.length})</h2>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+            <div 
+              onClick={handleSyncShopee}
+              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#EE4D2D", cursor: syncing ? "wait" : "pointer" }}
             >
-              {f.label}
-            </button>
-          ))}
+              <RefreshCw size={13} className={syncing ? "spin" : ""} />
+              <span>Đồng bộ API</span>
+            </div>
+            <div 
+              onClick={() => onNavigate("batch-print")}
+              style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "11px", fontWeight: "700", color: "#EE4D2D", cursor: "pointer" }}
+            >
+              <Printer size={14} />
+              <span>In hàng loạt</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Input */}
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            backgroundColor: "#F1F5F9",
+            borderRadius: "8px",
+            padding: "0 10px",
+            height: "36px"
+          }}>
+            <Search size={14} color="#94A3B8" />
+            <input 
+              type="text" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm mã đơn, tên khách, mã vận đơn..." 
+              style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px", color: "#1E293B" }}
+            />
+          </div>
+
+          {/* Filter Pills */}
+          <div style={{ display: "flex", gap: "6px", marginTop: "8px", overflowX: "auto", paddingBottom: "2px" }} className="no-scrollbar">
+            {[
+              { id: "ALL", label: "Tất cả" },
+              { id: "READY_TO_SHIP", label: "Chờ xử lý" },
+              { id: "PROCESSED", label: "Đang đóng gói" },
+              { id: "SHIPPED", label: "Đang giao" },
+              { id: "COMPLETED", label: "Đã giao" },
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setFilterTab(f.id)}
+                style={{
+                  border: "none",
+                  borderRadius: "99px",
+                  padding: "4px 10px",
+                  fontSize: "11px",
+                  fontWeight: "600",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  backgroundColor: filterTab === f.id ? "#EE4D2D" : "#F1F5F9",
+                  color: filterTab === f.id ? "#FFFFFF" : "#64748B"
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -1920,17 +1923,18 @@ export const OrderDetailScreen = ({ onNavigate, selectedOrder, onToast, onOpenPr
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      {/* Header */}
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-            <ArrowLeft size={18} color="#0F172A" />
-          </button>
-          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Chi tiết đơn hàng</h2>
+      {/* Pinned Top Header */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+              <ArrowLeft size={18} color="#0F172A" />
+            </button>
+            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Chi tiết đơn hàng</h2>
+          </div>
+          <Share2 size={16} color="#64748B" style={{ cursor: "pointer" }} />
         </div>
-        <Share2 size={16} color="#64748B" style={{ cursor: "pointer" }} />
       </div>
 
       {/* Scrollable details */}
@@ -2119,54 +2123,56 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-        <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-          <ArrowLeft size={18} color="#0F172A" />
-        </button>
-        <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>In hàng loạt</h2>
-      </div>
-
-      <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-        {/* Pills */}
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button 
-            onClick={() => setActiveTab("unprinted")}
-            style={{
-              padding: "5px 12px",
-              borderRadius: "99px",
-              fontSize: "11px",
-              fontWeight: "700",
-              border: "none",
-              backgroundColor: activeTab === "unprinted" ? "#FFF1EC" : "#F1F5F9",
-              color: activeTab === "unprinted" ? "#EE4D2D" : "#64748B",
-              cursor: "pointer"
-            }}
-          >
-            Đơn chưa in ({orders.filter(o => !o.printed).length})
+      {/* Pinned Top Header & Controls */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+          <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+            <ArrowLeft size={18} color="#0F172A" />
           </button>
-          <button 
-            onClick={() => setActiveTab("printed")}
-            style={{
-              padding: "5px 12px",
-              borderRadius: "99px",
-              fontSize: "11px",
-              fontWeight: "700",
-              border: "none",
-              backgroundColor: activeTab === "printed" ? "#FFF1EC" : "#F1F5F9",
-              color: activeTab === "printed" ? "#EE4D2D" : "#64748B",
-              cursor: "pointer"
-            }}
-          >
-            Đã in ({orders.filter(o => o.printed).length})
-          </button>
+          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>In hàng loạt</h2>
         </div>
 
-        {/* Paper format info */}
-        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "10px", color: "#64748B" }}>
-          <Printer size={12} color="#EE4D2D" />
-          <span>Khổ in mặc định: <strong>A6 Thermal (100x150mm) SPX Express</strong></span>
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
+          {/* Pills */}
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button 
+              onClick={() => setActiveTab("unprinted")}
+              style={{
+                padding: "5px 12px",
+                borderRadius: "99px",
+                fontSize: "11px",
+                fontWeight: "700",
+                border: "none",
+                backgroundColor: activeTab === "unprinted" ? "#FFF1EC" : "#F1F5F9",
+                color: activeTab === "unprinted" ? "#EE4D2D" : "#64748B",
+                cursor: "pointer"
+              }}
+            >
+              Đơn chưa in ({orders.filter(o => !o.printed).length})
+            </button>
+            <button 
+              onClick={() => setActiveTab("printed")}
+              style={{
+                padding: "5px 12px",
+                borderRadius: "99px",
+                fontSize: "11px",
+                fontWeight: "700",
+                border: "none",
+                backgroundColor: activeTab === "printed" ? "#FFF1EC" : "#F1F5F9",
+                color: activeTab === "printed" ? "#EE4D2D" : "#64748B",
+                cursor: "pointer"
+              }}
+            >
+              Đã in ({orders.filter(o => o.printed).length})
+            </button>
+          </div>
+
+          {/* Paper format info */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "10px", color: "#64748B" }}>
+            <Printer size={12} color="#EE4D2D" />
+            <span>Khổ in mặc định: <strong>A6 Thermal (100x150mm) SPX Express</strong></span>
+          </div>
         </div>
       </div>
 
@@ -2523,45 +2529,47 @@ export const WarehouseScreen = ({ onNavigate, onToast, onDataChanged }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      {/* Header */}
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-            <ArrowLeft size={18} color="#0F172A" />
+      {/* Pinned Top Header & Search */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        {/* Header */}
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+              <ArrowLeft size={18} color="#0F172A" />
+            </button>
+            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Kho hàng ({inventories.length})</h2>
+          </div>
+          <button 
+            onClick={() => onNavigate("products")}
+            style={{
+              height: "28px",
+              backgroundColor: "#EE4D2D",
+              color: "#fff",
+              border: "none",
+              borderRadius: "6px",
+              padding: "0 10px",
+              fontSize: "10px",
+              fontWeight: "700",
+              cursor: "pointer"
+            }}
+          >
+            Sản phẩm & SKU
           </button>
-          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Kho hàng ({inventories.length})</h2>
         </div>
-        <button 
-          onClick={() => onNavigate("products")}
-          style={{
-            height: "28px",
-            backgroundColor: "#EE4D2D",
-            color: "#fff",
-            border: "none",
-            borderRadius: "6px",
-            padding: "0 10px",
-            fontSize: "10px",
-            fontWeight: "700",
-            cursor: "pointer"
-          }}
-        >
-          Sản phẩm & SKU
-        </button>
-      </div>
 
-      {/* Search */}
-      <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "0 10px", height: "34px" }}>
-          <Search size={14} color="#94A3B8" />
-          <input 
-            type="text" 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm SKU, tên sản phẩm..." 
-            style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px" }}
-          />
+        {/* Search */}
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "0 10px", height: "34px" }}>
+            <Search size={14} color="#94A3B8" />
+            <input 
+              type="text" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm SKU, tên sản phẩm..." 
+              style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px" }}
+            />
+          </div>
         </div>
       </div>
 
@@ -2759,47 +2767,49 @@ export const ProductsScreen = ({ onNavigate, onToast }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      {/* Header */}
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-            <ArrowLeft size={18} color="#0F172A" />
+      {/* Pinned Top Header & Search */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        {/* Header */}
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+              <ArrowLeft size={18} color="#0F172A" />
+            </button>
+            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Sản phẩm ({products.length})</h2>
+          </div>
+          <button 
+            onClick={handleSyncAllFromShopee}
+            disabled={syncingAll}
+            style={{
+              background: "none",
+              border: "none",
+              color: "#EE4D2D",
+              fontSize: "11px",
+              fontWeight: "700",
+              cursor: syncingAll ? "wait" : "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px"
+            }}
+          >
+            <RefreshCw size={11} className={syncingAll ? "spin" : ""} />
+            <span>{syncingAll ? "Đang đồng bộ..." : "Đồng bộ Shopee"}</span>
           </button>
-          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Sản phẩm ({products.length})</h2>
         </div>
-        <button 
-          onClick={handleSyncAllFromShopee}
-          disabled={syncingAll}
-          style={{
-            background: "none",
-            border: "none",
-            color: "#EE4D2D",
-            fontSize: "11px",
-            fontWeight: "700",
-            cursor: syncingAll ? "wait" : "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "4px"
-          }}
-        >
-          <RefreshCw size={11} className={syncingAll ? "spin" : ""} />
-          <span>{syncingAll ? "Đang đồng bộ..." : "Đồng bộ Shopee"}</span>
-        </button>
-      </div>
 
-      {/* Search */}
-      <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "0 10px", height: "34px" }}>
-          <Search size={14} color="#94A3B8" />
-          <input 
-            type="text" 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm sản phẩm, mã SKU..." 
-            style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px" }}
-          />
+        {/* Search */}
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "0 10px", height: "34px" }}>
+            <Search size={14} color="#94A3B8" />
+            <input 
+              type="text" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm sản phẩm, mã SKU..." 
+              style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px" }}
+            />
+          </div>
         </div>
       </div>
 
@@ -2921,55 +2931,57 @@ export const CustomersScreen = ({ onNavigate }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-          <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-            <ArrowLeft size={18} color="#0F172A" />
-          </button>
-          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Khách hàng CRM ({customers.length})</h2>
-        </div>
-        <button 
-          onClick={() => onNavigate("rankings")}
-          style={{ background: "none", border: "none", color: "#EE4D2D", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
-        >
-          Xếp hạng VIP 👑
-        </button>
-      </div>
-
-      <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "0 10px", height: "34px" }}>
-          <Search size={14} color="#94A3B8" />
-          <input 
-            type="text" 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Tìm tên, SĐT, mã KH..." 
-            style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px" }}
-          />
-        </div>
-
-        <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
-          {["ALL", "VIP", "GOLD", "SILVER"].map((t) => (
-            <button 
-              key={t}
-              onClick={() => setTab(t)}
-              style={{
-                flex: 1,
-                padding: "4px 0",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: "700",
-                border: "none",
-                backgroundColor: tab === t ? "#FFF1EC" : "#F1F5F9",
-                color: tab === t ? "#EE4D2D" : "#64748B",
-                cursor: "pointer"
-              }}
-            >
-              {t === "ALL" ? "Tất cả" : t}
+      {/* Pinned Top Header & Search Filters */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+              <ArrowLeft size={18} color="#0F172A" />
             </button>
-          ))}
+            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A" }}>Khách hàng CRM ({customers.length})</h2>
+          </div>
+          <button 
+            onClick={() => onNavigate("rankings")}
+            style={{ background: "none", border: "none", color: "#EE4D2D", fontSize: "11px", fontWeight: "700", cursor: "pointer" }}
+          >
+            Xếp hạng VIP 👑
+          </button>
+        </div>
+
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "0 10px", height: "34px" }}>
+            <Search size={14} color="#94A3B8" />
+            <input 
+              type="text" 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Tìm tên, SĐT, mã KH..." 
+              style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px" }}
+            />
+          </div>
+
+          <div style={{ display: "flex", gap: "6px", marginTop: "8px" }}>
+            {["ALL", "VIP", "GOLD", "SILVER"].map((t) => (
+              <button 
+                key={t}
+                onClick={() => setTab(t)}
+                style={{
+                  flex: 1,
+                  padding: "4px 0",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  border: "none",
+                  backgroundColor: tab === t ? "#FFF1EC" : "#F1F5F9",
+                  color: tab === t ? "#EE4D2D" : "#64748B",
+                  cursor: "pointer"
+                }}
+              >
+                {t === "ALL" ? "Tất cả" : t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -3052,13 +3064,15 @@ export const RankingsScreen = ({ onNavigate }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-        <button onClick={() => onNavigate("customers")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-          <ArrowLeft size={18} color="#0F172A" />
-        </button>
-        <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Bảng xếp hạng VIP 👑</h2>
+      {/* Pinned Top Header */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+          <button onClick={() => onNavigate("customers")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+            <ArrowLeft size={18} color="#0F172A" />
+          </button>
+          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Bảng xếp hạng VIP 👑</h2>
+        </div>
       </div>
 
       <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -3168,36 +3182,38 @@ export const ReportsScreen = ({ onNavigate }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
+      {/* Pinned Top Header & Period Tabs */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+          <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+            <ArrowLeft size={18} color="#0F172A" />
+          </button>
+          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Báo cáo & Thống kê</h2>
+        </div>
 
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-        <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-          <ArrowLeft size={18} color="#0F172A" />
-        </button>
-        <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Báo cáo & Thống kê</h2>
-      </div>
-
-      <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-        <div style={{ display: "flex", gap: "6px" }}>
-          {["7 ngày", "30 ngày", "Tháng này"].map((t, idx) => (
-            <button 
-              key={idx}
-              onClick={() => setTab(`tab${idx}`)}
-              style={{
-                flex: 1,
-                padding: "4px 0",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: "700",
-                border: "none",
-                backgroundColor: idx === 0 ? "#EE4D2D" : "#F1F5F9",
-                color: idx === 0 ? "#FFFFFF" : "#64748B",
-                cursor: "pointer"
-              }}
-            >
-              {t}
-            </button>
-          ))}
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", gap: "6px" }}>
+            {["7 ngày", "30 ngày", "Tháng này"].map((t, idx) => (
+              <button 
+                key={idx}
+                onClick={() => setTab(`tab${idx}`)}
+                style={{
+                  flex: 1,
+                  padding: "4px 0",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  border: "none",
+                  backgroundColor: idx === 0 ? "#EE4D2D" : "#F1F5F9",
+                  color: idx === 0 ? "#FFFFFF" : "#64748B",
+                  cursor: "pointer"
+                }}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -3309,13 +3325,15 @@ export const StaffScreen = ({ onNavigate, onToast, onDataChanged }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-        <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-          <ArrowLeft size={18} color="#0F172A" />
-        </button>
-        <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Nhân viên ({staff.length})</h2>
+      {/* Pinned Top Header */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+          <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+            <ArrowLeft size={18} color="#0F172A" />
+          </button>
+          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Nhân viên ({staff.length})</h2>
+        </div>
       </div>
 
       <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
@@ -3479,13 +3497,15 @@ export const ShopeeApiScreen = ({ onNavigate, onToast }) => {
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-        <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-          <ArrowLeft size={18} color="#0F172A" />
-        </button>
-        <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Kết nối Shopee API</h2>
+      {/* Pinned Top Header */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+          <button onClick={() => onNavigate("settings")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+            <ArrowLeft size={18} color="#0F172A" />
+          </button>
+          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Kết nối Shopee API</h2>
+        </div>
       </div>
 
       <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -3665,13 +3685,15 @@ export const SettingsScreen = ({ onNavigate, activeUser, onToast, setActiveUser 
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
-      <StatusBar dark={true} />
-
-      <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-        <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-          <ArrowLeft size={18} color="#0F172A" />
-        </button>
-        <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Cài đặt hệ thống</h2>
+      {/* Pinned Top Header */}
+      <div className="sticky-top-header">
+        <StatusBar dark={true} />
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+          <button onClick={() => onNavigate("dashboard")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+            <ArrowLeft size={18} color="#0F172A" />
+          </button>
+          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Cài đặt hệ thống</h2>
+        </div>
       </div>
 
       <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: "10px" }}>
@@ -3762,7 +3784,7 @@ export const SettingsScreen = ({ onNavigate, activeUser, onToast, setActiveUser 
         </div>
       </div>
 
-      <MobileBottomNav activeTab="more" onTabChange={(t) => onNavigate(t)} />
+      <MobileBottomNav activeTab="settings" onTabChange={(t) => onNavigate(t)} />
     </div>
   );
 };

@@ -23,6 +23,7 @@ const SCREENS = [
   { id: "staff", title: "Nhân Viên & Phân Quyền", component: StaffScreen },
   { id: "shopee-api", title: "Kết Nối Shopee API", component: ShopeeApiScreen },
   { id: "settings", title: "Cài Đặt Hệ Thống", component: SettingsScreen },
+  { id: "more", title: "Cài Đặt Hệ Thống", component: SettingsScreen },
   { id: "login", title: "Đăng Nhập", component: LoginScreen },
   { id: "welcome", title: "Màn Hình Chào Mừng", component: WelcomeScreen },
 ];
@@ -32,10 +33,12 @@ const SCREENS = [
  */
 function getInitialScreen() {
   const hash = window.location.hash.replace("#/", "").replace("#", "").trim();
+  if (hash === "more" || hash === "settings") return "settings";
   if (hash && SCREENS.some(s => s.id === hash)) {
     return hash;
   }
   const path = window.location.pathname.replace(/^\//, "").trim();
+  if (path === "more" || path === "settings") return "settings";
   if (path && SCREENS.some(s => s.id === path)) {
     return path;
   }
@@ -113,8 +116,9 @@ export default function App() {
       if (payload.orderSns) setSelectedOrderSns(payload.orderSns);
       if (payload.labelData) setThermalModalData(payload.labelData);
     }
-    setCurrentScreen(screenId);
-    window.location.hash = `#/${screenId}`;
+    const targetScreen = screenId === "more" ? "settings" : screenId;
+    setCurrentScreen(targetScreen);
+    window.location.hash = `#/${targetScreen}`;
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

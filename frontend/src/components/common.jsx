@@ -47,11 +47,17 @@ export const ShopeeLogo = ({ size = 28, className = "" }) => (
  * Mobile Top Spacer (Seamless native safe-area)
  */
 export const StatusBar = () => (
-  <div style={{ height: "6px", width: "100%", backgroundColor: "transparent", flexShrink: 0 }} />
+  <div style={{
+    height: "env(safe-area-inset-top, 0px)",
+    minHeight: "0px",
+    width: "100%",
+    backgroundColor: "transparent",
+    flexShrink: 0
+  }} />
 );
 
 /**
- * Reusable Mobile Bottom Navigation Bar (5 tabs, sticky bottom)
+ * Reusable Mobile Bottom Navigation Bar (5 tabs, fixed bottom)
  */
 export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
   const tabs = [
@@ -59,55 +65,68 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
     { id: "orders", label: "Đơn hàng", icon: Package },
     { id: "warehouse", label: "Kho hàng", icon: Warehouse },
     { id: "products", label: "Sản phẩm", icon: Tag },
-    { id: "more", label: "Cài đặt", icon: Settings },
+    { id: "settings", label: "Cài đặt", icon: Settings },
   ];
 
   return (
-    <div style={{
-      height: "58px",
-      backgroundColor: "#FFFFFF",
-      borderTop: "1px solid #F1F5F9",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-around",
-      padding: "0 4px",
-      position: "sticky",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      zIndex: 40,
-      flexShrink: 0,
-      boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.04)"
-    }}>
-      {tabs.map((tab) => {
-        const Icon = tab.icon;
-        const isActive = activeTab === tab.id;
-        return (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange && onTabChange(tab.id)}
-            style={{
-              background: "none",
-              border: "none",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: "3px",
-              cursor: "pointer",
-              padding: "6px 8px",
-              color: isActive ? "#EE4D2D" : "#94A3B8",
-              transition: "all 0.15s ease",
-              flex: 1
-            }}
-          >
-            <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
-            <span style={{ fontSize: "10px", fontWeight: isActive ? "700" : "500", lineHeight: 1 }}>
-              {tab.label}
-            </span>
-          </button>
-        );
-      })}
-    </div>
+    <>
+      {/* Fixed bottom navigation bar - ALWAYS pinned and visible */}
+      <nav 
+        aria-label="Thanh điều hướng chính"
+        style={{
+          height: "calc(58px + env(safe-area-inset-bottom, 0px))",
+          backgroundColor: "#FFFFFF",
+          borderTop: "1px solid #F1F5F9",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-around",
+          padding: "0 4px",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          width: "100%",
+          zIndex: 1000,
+          flexShrink: 0,
+          boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.05)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+        }}
+      >
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id || (tab.id === "settings" && (activeTab === "more" || activeTab === "settings"));
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange && onTabChange(tab.id)}
+              style={{
+                background: "none",
+                border: "none",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: "3px",
+                cursor: "pointer",
+                padding: "6px 8px",
+                color: isActive ? "#EE4D2D" : "#94A3B8",
+                transition: "all 0.15s ease",
+                flex: 1
+              }}
+            >
+              <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+              <span style={{ fontSize: "10px", fontWeight: isActive ? "700" : "500", lineHeight: 1 }}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+      {/* Spacer to guarantee content is never covered by the fixed navigation bar */}
+      <div style={{ height: "calc(62px + env(safe-area-inset-bottom, 0px))", flexShrink: 0, width: "100%", pointerEvents: "none" }} />
+    </>
   );
 };
+
 
