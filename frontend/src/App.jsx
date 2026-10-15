@@ -54,19 +54,11 @@ export default function App() {
   const [thermalModalData, setThermalModalData] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(1);
   const [toast, setToast] = useState(null);
-  const [theme, setTheme] = useState(() => localStorage.getItem("spx_theme") || "light");
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("spx_theme", theme);
-  }, [theme]);
-
-  const toggleTheme = () => {
-    const next = theme === "dark" ? "light" : "dark";
-    setTheme(next);
-    playChime("success");
-    triggerToast(next === "dark" ? "🌙 Đã kích hoạt VIP Obsidian Dark Mode!" : "☀️ Đã chuyển sang Giao diện Sáng Sang Chảnh!");
-  };
+    document.documentElement.removeAttribute("data-theme");
+    localStorage.removeItem("spx_theme");
+  }, []);
 
   // Auto authenticate and ensure user session
   useEffect(() => {
@@ -154,8 +146,6 @@ export default function App() {
     onDataChanged: () => setRefreshTrigger(prev => prev + 1),
     onToast: triggerToast,
     onNavigate: handleNavigate,
-    theme,
-    toggleTheme,
   };
 
   return (
@@ -187,54 +177,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Floating VIP Theme Switcher Pill */}
-      <button
-        onClick={toggleTheme}
-        style={{
-          position: "fixed",
-          bottom: "64px",
-          right: "12px",
-          zIndex: 9999,
-          backgroundColor: theme === "dark" ? "rgba(17, 24, 39, 0.9)" : "rgba(255, 255, 255, 0.92)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          border: theme === "dark" ? "1px solid rgba(255, 255, 255, 0.16)" : "1px solid rgba(0, 0, 0, 0.12)",
-          boxShadow: "0 8px 24px rgba(0, 0, 0, 0.22)",
-          borderRadius: "99px",
-          padding: "7px 12px",
-          display: "flex",
-          alignItems: "center",
-          gap: "6px",
-          color: theme === "dark" ? "#F8FAFC" : "#0F172A",
-          fontSize: "11px",
-          fontWeight: "800",
-          cursor: "pointer",
-          letterSpacing: "0.01em"
-        }}
-        title="Bật/Tắt chế độ VIP Obsidian Dark Mode"
-      >
-        {theme === "dark" ? (
-          <>
-            <Moon size={14} color="#FBBF24" />
-            <span>VIP Obsidian</span>
-          </>
-        ) : (
-          <>
-            <Sun size={14} color="#F59E0B" />
-            <span>VIP Light</span>
-          </>
-        )}
-        <span style={{
-          fontSize: "9px",
-          color: "#FFFFFF",
-          background: "linear-gradient(135deg, #EE4D2D 0%, #FF5722 100%)",
-          padding: "1px 5px",
-          borderRadius: "4px",
-          fontWeight: "800"
-        }}>
-          PRO
-        </span>
-      </button>
+
 
       {/* Printable Thermal Label Modal */}
       {thermalModalData && (
