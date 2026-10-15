@@ -878,16 +878,17 @@ function handleOfflineFallback(endpoint, options, originalErr) {
   // 1. Shopee Seller Login
   if (endpoint.includes("/api/auth/shopee-seller-login")) {
     const body = options.body ? JSON.parse(options.body) : {};
-    const shopId = body.shop_id || 2378829;
-    const shopName = body.shop_name || "Bubu Baby - Đại Lý Chính Hãng NOUS";
-    const sellerUsername = body.seller_username || "minhhy:bubu.237";
+    const sellerUsername = body.seller_username || "Shop Shopee";
+    const isNousDemo = sellerUsername === "minhhy:bubu.237";
+    const shopName = body.shop_name || (isNousDemo ? "Bubu Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${sellerUsername})`);
+    const shopId = body.shop_id || (isNousDemo ? 2378829 : Math.floor(1000000 + Math.random() * 8999999));
     
     const user = {
       id: 1,
       username: sellerUsername,
-      email: `${sellerUsername.replace(':', '_')}@seller.shopee.vn`,
-      full_name: `Bubu Baby (${sellerUsername})`,
-      main_account: "minhhy.mon237",
+      email: `${sellerUsername.replace(/[^a-zA-Z0-9]/g, '_')}@seller.shopee.vn`,
+      full_name: isNousDemo ? `Bubu Baby (${sellerUsername})` : shopName,
+      main_account: sellerUsername,
       role: "ADMIN",
       shop_id: shopId,
       shop_name: shopName
@@ -899,7 +900,7 @@ function handleOfflineFallback(endpoint, options, originalErr) {
       seller_username: sellerUsername,
       is_connected: true
     };
-    const mockToken = "mock_jwt_token_for_shopee_seller_minhhy";
+    const mockToken = `mock_token_${sellerUsername.replace(/[^a-zA-Z0-9]/g, '_')}`;
     setToken(mockToken);
     setLocalStore("current_user", user);
     setLocalStore("connected_shop", shop);

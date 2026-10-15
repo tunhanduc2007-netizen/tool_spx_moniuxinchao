@@ -181,13 +181,13 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   
   // Shopee Seller SSO state (matching account.seller.shopee.com)
   const [shopeeLoginMode, setShopeeLoginMode] = useState("password"); // "password" | "qr"
-  const [shopeeAccount, setShopeeAccount] = useState("minhhy:bubu.237");
-  const [shopeePassword, setShopeePassword] = useState("Shopee@Seller2026");
+  const [shopeeAccount, setShopeeAccount] = useState("");
+  const [shopeePassword, setShopeePassword] = useState("");
   const [shopeeShowPassword, setShopeeShowPassword] = useState(false);
-  const [shopeeShopId, setShopeeShopId] = useState("2378829");
-  const [shopeeShopName, setShopeeShopName] = useState("Bubu Baby - minhhy:bubu.237 (Đại Lý NOUS)");
+  const [shopeeShopId, setShopeeShopId] = useState("");
+  const [shopeeShopName, setShopeeShopName] = useState("");
   const [shopeeOtpStep, setShopeeOtpStep] = useState(false);
-  const [otpDigits, setOtpDigits] = useState(["8", "8", "2", "9", "1", "0"]);
+  const [otpDigits, setOtpDigits] = useState(["", "", "", "", "", ""]);
   const [countdown, setCountdown] = useState(58);
 
   // Admin state
@@ -198,6 +198,31 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const fillNousDemo = () => {
+    setShopeeAccount("minhhy:bubu.237");
+    setShopeePassword("Shopee@Seller2026");
+    setShopeeShopId("2378829");
+    setShopeeShopName("Bubu Baby - minhhy:bubu.237 (Đại Lý NOUS)");
+    setOtpDigits(["8", "8", "2", "9", "1", "0"]);
+    setErrorMsg("");
+  };
+
+  const formatDisplayContact = (acc) => {
+    if (!acc) return "Số điện thoại của bạn";
+    const clean = acc.trim();
+    if (/^\d{9,11}$/.test(clean)) {
+      return clean.replace(/(\d{3})\d{3,4}(\d{3})/, "$1 **** $2");
+    }
+    if (clean.includes("@")) {
+      const [u, d] = clean.split("@");
+      return `${u.slice(0, 2)}***@${d}`;
+    }
+    if (clean.length > 5) {
+      return `${clean.slice(0, 3)}****${clean.slice(-3)}`;
+    }
+    return clean;
+  };
 
   useEffect(() => {
     let timer;
@@ -210,12 +235,15 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   const handleStartShopeeLogin = (e) => {
     if (e) e.preventDefault();
     if (!shopeeAccount.trim()) {
-      setErrorMsg("Vui lòng nhập tài khoản Shopee Seller hoặc số điện thoại");
+      setErrorMsg("Vui lòng nhập số điện thoại hoặc tài khoản Kênh Người Bán Shopee của bạn");
       return;
     }
     setErrorMsg("");
     setShopeeOtpStep(true);
     setCountdown(58);
+    if (shopeeAccount.trim() === "minhhy:bubu.237" && otpDigits.every(d => !d)) {
+      setOtpDigits(["8", "8", "2", "9", "1", "0"]);
+    }
   };
 
   const handleShopeeSellerSubmit = async (e) => {
@@ -223,19 +251,24 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
     setLoading(true);
     setErrorMsg("");
 
+    const currentAcc = shopeeAccount.trim() || "Shop Shopee";
+    const isNous = currentAcc === "minhhy:bubu.237";
+    const displayName = shopeeShopName.trim() || (isNous ? "Bubu Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${currentAcc})`);
+    const shopIdNum = shopeeShopId ? Number(shopeeShopId) : (isNous ? 2378829 : 1889922);
+
     try {
       const res = await authAPI.shopeeSellerLogin({
-        shop_id: shopeeShopId ? Number(shopeeShopId) : 2378829,
-        shop_name: shopeeShopName.trim() || `Bubu Baby (minhhy:bubu.237)`,
-        seller_username: shopeeAccount.trim() || "minhhy:bubu.237",
-        otp: otpDigits.join("")
+        shop_id: shopIdNum,
+        shop_name: displayName,
+        seller_username: currentAcc,
+        otp: otpDigits.join("") || "882910"
       });
 
       if (res && res.access_token) {
         setToken(res.access_token);
         if (setActiveUser && res.user) setActiveUser(res.user);
         if (onToast) {
-          onToast(`🎉 Đăng nhập Kênh Người Bán Shopee (minhhy:bubu.237) thành công! Đã đồng bộ 27 đơn chờ in và 111 đơn đã giao.`);
+          onToast(`🎉 Đăng nhập Kênh Người Bán Shopee (${res.user?.username || currentAcc}) thành công!`);
         }
         onNavigate("dashboard");
       }
@@ -500,14 +533,28 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                       border: "1px solid #FFD8CC",
                       borderRadius: "6px",
                       padding: "10px 12px",
-                      marginBottom: "16px"
+                      marginBottom: "12px"
                     }}>
                       <div style={{ fontSize: "12px", color: "#1E293B", lineHeight: "1.5" }}>
-                        Mã xác thực (OTP) gồm 6 chữ số đã được Shopee gửi qua tin nhắn SMS tới số điện thoại liên kết của tài khoản <strong>{shopeeAccount || "minhhy:bubu.237"}</strong>:
+                        Mã xác thực gồm 6 chữ số kích hoạt phiên làm việc cho tài khoản <strong>{shopeeAccount || "người bán"}</strong>:
                       </div>
-                      <div style={{ fontSize: "13px", fontWeight: "800", color: "#EE4D2D", marginTop: "4px" }}>
-                        📱 09**** *** 237 (Tin nhắn SMS từ SHOPEE)
+                      <div style={{ fontSize: "14px", fontWeight: "800", color: "#EE4D2D", marginTop: "4px" }}>
+                        📱 {formatDisplayContact(shopeeAccount)}
                       </div>
+                    </div>
+
+                    {/* Explanatory Security Banner */}
+                    <div style={{
+                      backgroundColor: "#F8FAFC",
+                      border: "1px dashed #CBD5E1",
+                      borderRadius: "6px",
+                      padding: "8px 10px",
+                      marginBottom: "14px",
+                      fontSize: "11px",
+                      color: "#475569",
+                      lineHeight: "1.4"
+                    }}>
+                      🔒 <strong>Lưu ý bảo mật:</strong> Theo chính sách bảo mật chống lừa đảo của Shopee, ứng dụng bên ngoài không thể tự gửi tin nhắn SMS thương hiệu SHOPEE về điện thoại cá nhân. Bạn có thể tự nhập 6 số bất kỳ hoặc bấm nút bên dưới để vào quản trị đơn ngay.
                     </div>
 
                     {/* 6 OTP boxes */}
@@ -555,8 +602,8 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                           border: "1px solid #BFDBFE",
                           color: "#2563EB",
                           borderRadius: "4px",
-                          padding: "4px 8px",
-                          fontSize: "11px",
+                          padding: "6px 10px",
+                          fontSize: "11.5px",
                           fontWeight: "700",
                           cursor: "pointer",
                           display: "inline-flex",
@@ -565,11 +612,11 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                         }}
                       >
                         <Sparkles size={12} />
-                        <span>Điền nhanh OTP: 882910</span>
+                        <span>⚡ Điền nhanh mã xác nhận: 882910</span>
                       </button>
 
                       <span style={{ fontSize: "11px", color: "#64748B" }}>
-                        Gửi lại mã: <strong style={{ color: "#EE4D2D" }}>{countdown}s</strong>
+                        Thời hạn: <strong style={{ color: "#EE4D2D" }}>{countdown}s</strong>
                       </span>
                     </div>
 
@@ -601,7 +648,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                           <span>Đang xác thực OTP & đồng bộ đơn hàng...</span>
                         </>
                       ) : (
-                        <span>Xác Nhận OTP & Đồng Bộ 100% Đơn Hàng</span>
+                        <span>Xác Nhận & Đăng Nhập Vào Quản Trị</span>
                       )}
                     </button>
 
@@ -623,13 +670,48 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                   </div>
                 ) : (
                   <form onSubmit={handleStartShopeeLogin} style={{ display: "flex", flexDirection: "column" }}>
+                    {/* Demo shortcut banner */}
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "8px 10px",
+                      backgroundColor: "#FFFBEB",
+                      border: "1px solid #FDE68A",
+                      borderRadius: "6px",
+                      marginBottom: "14px",
+                      fontSize: "11px",
+                      color: "#92400E"
+                    }}>
+                      <span>💡 Muốn xem thử đơn mẫu shop NOUS?</span>
+                      <button
+                        type="button"
+                        onClick={fillNousDemo}
+                        style={{
+                          background: "#F59E0B",
+                          color: "#FFFFFF",
+                          border: "none",
+                          borderRadius: "4px",
+                          padding: "4px 8px",
+                          fontSize: "10.5px",
+                          fontWeight: "700",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ⚡ Điền mẫu Shop NOUS
+                      </button>
+                    </div>
+
                     {/* Account Input */}
-                    <div style={{ marginBottom: "14px" }}>
+                    <div style={{ marginBottom: "14px", textAlign: "left" }}>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "5px" }}>
+                        Tài khoản / Số điện thoại Shopee
+                      </label>
                       <input 
                         type="text"
                         value={shopeeAccount}
                         onChange={(e) => setShopeeAccount(e.target.value)}
-                        placeholder="Main/subaccount name/phone/email"
+                        placeholder="Nhập SĐT, email hoặc tên đăng nhập Shopee"
                         required
                         style={{
                           width: "100%",
@@ -643,48 +725,53 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                           boxSizing: "border-box"
                         }}
                       />
-                      <div style={{ fontSize: "11px", color: "#8E8E93", marginTop: "5px", textAlign: "left" }}>
-                        Ví dụ: nhập tài khoản Shopee Seller 'minhhy:bubu.237' hoặc SĐT.
+                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "4px" }}>
+                        Nhập số điện thoại thật hoặc tài khoản Kênh Người Bán của bạn.
                       </div>
                     </div>
 
                     {/* Password Input */}
-                    <div style={{ marginBottom: "12px", position: "relative" }}>
-                      <input 
-                        type={shopeeShowPassword ? "text" : "password"}
-                        value={shopeePassword}
-                        onChange={(e) => setShopeePassword(e.target.value)}
-                        placeholder="Mật Khẩu"
-                        required
-                        style={{
-                          width: "100%",
-                          height: "42px",
-                          border: "1px solid #CBD5E1",
-                          borderRadius: "4px",
-                          padding: "0 40px 0 12px",
-                          fontSize: "13px",
-                          color: "#1E293B",
-                          outline: "none",
-                          boxSizing: "border-box"
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShopeeShowPassword(!shopeeShowPassword)}
-                        style={{
-                          position: "absolute",
-                          right: "12px",
-                          top: "50%",
-                          transform: "translateY(-50%)",
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          color: "#94A3B8",
-                          padding: "0"
-                        }}
-                      >
-                        {shopeeShowPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
+                    <div style={{ marginBottom: "12px", textAlign: "left" }}>
+                      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "5px" }}>
+                        Mật khẩu
+                      </label>
+                      <div style={{ position: "relative" }}>
+                        <input 
+                          type={shopeeShowPassword ? "text" : "password"}
+                          value={shopeePassword}
+                          onChange={(e) => setShopeePassword(e.target.value)}
+                          placeholder="Nhập mật khẩu Shopee của bạn"
+                          required
+                          style={{
+                            width: "100%",
+                            height: "42px",
+                            border: "1px solid #CBD5E1",
+                            borderRadius: "4px",
+                            padding: "0 40px 0 12px",
+                            fontSize: "13px",
+                            color: "#1E293B",
+                            outline: "none",
+                            boxSizing: "border-box"
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShopeeShowPassword(!shopeeShowPassword)}
+                          style={{
+                            position: "absolute",
+                            right: "12px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            background: "none",
+                            border: "none",
+                            cursor: "pointer",
+                            color: "#94A3B8",
+                            padding: "0"
+                          }}
+                        >
+                          {shopeeShowPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                        </button>
+                      </div>
                     </div>
 
                     {/* Quên Mật Khẩu Link */}
@@ -721,7 +808,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                         opacity: loading ? 0.8 : 1
                       }}
                     >
-                      <span>Đăng Nhập ➜ Nhận Mã OTP</span>
+                      <span>Đăng Nhập ➜ Bước Tiếp Theo</span>
                     </button>
                   </form>
                 )
@@ -805,8 +892,29 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
               )}
             </div>
 
+            {/* Shopee Real Account Security Notice */}
+            <div style={{
+              marginTop: "16px",
+              padding: "10px 12px",
+              backgroundColor: "#F8FAFC",
+              border: "1px solid #E2E8F0",
+              borderRadius: "8px",
+              textAlign: "left",
+              fontSize: "11px",
+              color: "#475569",
+              lineHeight: "1.5"
+            }}>
+              <div style={{ fontWeight: "700", color: "#0F172A", marginBottom: "4px", display: "flex", alignItems: "center", gap: "6px" }}>
+                <Shield size={14} color="#16A34A" />
+                <span>Bạn muốn nhận OTP SMS thật từ tổng đài Shopee?</span>
+              </div>
+              <div>
+                Để nhận tin nhắn SMS OTP chính thức từ tổng đài Shopee và đồng bộ đơn hàng thật, bạn cần đăng nhập qua <strong>Kênh Người Bán gốc</strong> của Shopee hoặc kết nối ứng dụng bằng <strong>Cổng ủy quyền Shopee Open Platform</strong> (trong mục <em>Cài đặt</em>).
+              </div>
+            </div>
+
             {/* Bottom: Language & Official Shopee Link */}
-            <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+            <div style={{ marginTop: "14px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#64748B", fontSize: "12px", cursor: "pointer" }}>
                 <Globe size={13} />
                 <span>Tiếng Việt</span>
