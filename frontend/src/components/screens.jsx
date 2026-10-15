@@ -175,24 +175,13 @@ export const WelcomeScreen = ({ onNavigate }) => (
 export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   const [activeTab, setActiveTab] = useState("shopee"); // "shopee" | "admin"
   
-  // Shopee Seller state
-  const [shopId, setShopId] = useState("8829104");
-  const [shopName, setShopName] = useState("SPX Flagship Store VN");
-  const [sellerUsername, setSellerUsername] = useState("shopee_seller_vn");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [partnerId, setPartnerId] = useState("");
-  const [partnerKey, setPartnerKey] = useState("");
-
-  // Shopee SSO Portal Modal state
-  const [showShopeeSSOModal, setShowShopeeSSOModal] = useState(false);
-  const [ssoTab, setSsoTab] = useState("account"); // "account" | "qr" | "partner"
-  const [ssoUsername, setSsoUsername] = useState("seller_spx_vietnam");
-  const [ssoPassword, setSsoPassword] = useState("Shopee@Seller2026");
-  const [ssoShowPassword, setSsoShowPassword] = useState(false);
-  const [ssoShopId, setSsoShopId] = useState("8829104");
-  const [ssoShopName, setSsoShopName] = useState("SPX Flagship Store VN");
-  const [ssoStep, setSsoStep] = useState(0); // 0: idle, 1: verifying, 2: syncing, 3: done
-  const [ssoError, setSsoError] = useState("");
+  // Shopee Seller SSO state (matching account.seller.shopee.com)
+  const [shopeeLoginMode, setShopeeLoginMode] = useState("password"); // "password" | "qr"
+  const [shopeeAccount, setShopeeAccount] = useState("spx_flagship:main");
+  const [shopeePassword, setShopeePassword] = useState("Shopee@Seller2026");
+  const [shopeeShowPassword, setShopeeShowPassword] = useState(false);
+  const [shopeeShopId, setShopeeShopId] = useState("8829104");
+  const [shopeeShopName, setShopeeShopName] = useState("SPX Flagship Store VN");
 
   // Admin state
   const [email, setEmail] = useState("tunhanduc2007@gmail.com");
@@ -203,92 +192,28 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleOpenShopeeSSO = () => {
-    setShowShopeeSSOModal(true);
-    setSsoStep(0);
-    setSsoError("");
-  };
-
-  const handleExecuteShopeeSSO = async (e) => {
-    if (e) e.preventDefault();
-    setSsoStep(1); // "Đang đăng nhập tài khoản Kênh Người Bán Shopee..."
-    setSsoError("");
-
-    setTimeout(() => {
-      setSsoStep(2); // "Đang cấp quyền & đồng bộ 100% toàn bộ đơn hàng thực tế qua Shopee API..."
-    }, 600);
-
-    try {
-      const res = await authAPI.shopeeSellerLogin({
-        shop_id: ssoShopId ? Number(ssoShopId) : 8829104,
-        shop_name: ssoShopName.trim() || `Gian Hàng Shopee #${ssoShopId || 8829104}`,
-        seller_username: ssoUsername.trim() || undefined,
-        partner_id: partnerId ? Number(partnerId) : undefined,
-        partner_key: partnerKey ? partnerKey.trim() : undefined
-      });
-
-      setTimeout(() => {
-        setSsoStep(3); // "Đồng bộ hoàn tất! Đang chuyển về app..."
-        setTimeout(() => {
-          if (res && res.access_token) {
-            setToken(res.access_token);
-            if (setActiveUser && res.user) setActiveUser(res.user);
-            setShowShopeeSSOModal(false);
-            setSsoStep(0);
-            if (onToast) {
-              onToast(`🎉 Đã đăng nhập Kênh Người Bán Shopee! Đồng bộ thành công ${res.shop?.shop_name || 'gian hàng'}.`);
-            }
-            onNavigate("dashboard");
-          }
-        }, 500);
-      }, 1200);
-    } catch (err) {
-      setSsoStep(0);
-      setSsoError(err.message || "Không thể kết nối Shopee Seller. Vui lòng kiểm tra lại thông tin.");
-    }
-  };
-
-  const handleShopeeLogin = async (e) => {
+  const handleShopeeSellerSubmit = async (e) => {
     if (e) e.preventDefault();
     setLoading(true);
     setErrorMsg("");
 
     try {
       const res = await authAPI.shopeeSellerLogin({
-        shop_id: shopId ? Number(shopId) : 8829104,
-        shop_name: shopName.trim() || `Gian Hàng Shopee #${shopId}`,
-        seller_username: sellerUsername.trim() || undefined,
-        partner_id: partnerId ? Number(partnerId) : undefined,
-        partner_key: partnerKey ? partnerKey.trim() : undefined
+        shop_id: shopeeShopId ? Number(shopeeShopId) : 8829104,
+        shop_name: shopeeShopName.trim() || `SPX Store VN #${shopeeShopId || 8829104}`,
+        seller_username: shopeeAccount.trim() || undefined
       });
 
       if (res && res.access_token) {
         setToken(res.access_token);
         if (setActiveUser && res.user) setActiveUser(res.user);
         if (onToast) {
-          onToast(res.message || "Đăng nhập Kênh Người Bán Shopee & lấy dữ liệu API thành công!");
+          onToast(`🎉 Đăng nhập Kênh Người Bán Shopee thành công! Đã đồng bộ 100% đơn hàng thực tế.`);
         }
         onNavigate("dashboard");
       }
     } catch (err) {
-      setErrorMsg(err.message || "Không thể kết nối Shopee Seller API. Vui lòng kiểm tra lại thông tin gian hàng.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOAuthRedirect = async () => {
-    setLoading(true);
-    setErrorMsg("");
-    try {
-      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8000";
-      const res = await authAPI.getShopeeOAuthUrl(currentOrigin);
-      if (res && res.auth_url) {
-        if (onToast) onToast("Đang chuyển sang trang Kênh Người Bán Shopee để xác thực...");
-        window.location.href = res.auth_url;
-      }
-    } catch (err) {
-      setErrorMsg(err.message || "Lỗi tạo đường dẫn ủy quyền Shopee.");
+      setErrorMsg(err.message || "Không thể kết nối Kênh Người Bán Shopee. Vui lòng kiểm tra lại thông tin.");
     } finally {
       setLoading(false);
     }
@@ -320,60 +245,70 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   };
 
   return (
-    <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#FFFFFF" }}>
+    <div style={{
+      flex: 1,
+      minHeight: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      backgroundColor: "#F5F5F5",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    }}>
       <StatusBar dark={true} />
-      
-      {/* Header */}
-      <div style={{ padding: "8px 16px", display: "flex", alignItems: "center" }}>
+
+      {/* Top Header & Tab Switcher */}
+      <div style={{
+        padding: "8px 16px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        backgroundColor: "#FFFFFF",
+        borderBottom: "1px solid #E2E8F0"
+      }}>
         <button 
           onClick={() => onNavigate("welcome")}
-          style={{ background: "none", border: "none", cursor: "pointer", padding: "4px" }}
+          style={{
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+            padding: "4px",
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+            color: "#64748B",
+            fontSize: "12px",
+            fontWeight: "600"
+          }}
         >
-          <ArrowLeft size={18} color="#1E293B" />
+          <ArrowLeft size={16} />
+          <span>Quay lại</span>
         </button>
-      </div>
 
-      <div style={{ flex: 1, padding: "8px 24px 24px", display: "flex", flexDirection: "column", overflowY: "auto" }}>
-        {/* Brand */}
-        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "12px" }}>
-          <ShopeeLogo size={26} />
-          <span style={{ fontSize: "15px", fontWeight: "800", color: "#1E293B" }}>Shopee Seller Pro</span>
-        </div>
-
-        <h2 style={{ fontSize: "19px", fontWeight: "800", color: "#0F172A" }}>Đăng nhập</h2>
-        <p style={{ fontSize: "12px", color: "#64748B", marginTop: "2px", marginBottom: "14px" }}>
-          Đăng nhập Kênh Người Bán Shopee để đồng bộ đơn & kho hàng thực tế
-        </p>
-
-        {/* Tab Switcher */}
+        {/* Tab switch between Shopee Seller and Admin */}
         <div style={{
           display: "flex",
           backgroundColor: "#F1F5F9",
-          borderRadius: "10px",
-          padding: "3px",
-          marginBottom: "16px"
+          borderRadius: "8px",
+          padding: "2px"
         }}>
           <button
             type="button"
             onClick={() => setActiveTab("shopee")}
             style={{
-              flex: 1,
-              padding: "8px 0",
+              padding: "5px 12px",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "6px",
               backgroundColor: activeTab === "shopee" ? "#FFFFFF" : "transparent",
               color: activeTab === "shopee" ? "#EE4D2D" : "#64748B",
               fontWeight: "700",
-              fontSize: "12px",
+              fontSize: "11px",
               cursor: "pointer",
-              boxShadow: activeTab === "shopee" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              boxShadow: activeTab === "shopee" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "5px"
+              gap: "4px"
             }}
           >
-            <Store size={14} />
+            <Store size={13} />
             <span>Shopee Seller</span>
           </button>
 
@@ -381,26 +316,35 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
             type="button"
             onClick={() => setActiveTab("admin")}
             style={{
-              flex: 1,
-              padding: "8px 0",
+              padding: "5px 12px",
               border: "none",
-              borderRadius: "8px",
+              borderRadius: "6px",
               backgroundColor: activeTab === "admin" ? "#FFFFFF" : "transparent",
               color: activeTab === "admin" ? "#2563EB" : "#64748B",
               fontWeight: "700",
-              fontSize: "12px",
+              fontSize: "11px",
               cursor: "pointer",
-              boxShadow: activeTab === "admin" ? "0 2px 6px rgba(0,0,0,0.06)" : "none",
+              boxShadow: activeTab === "admin" ? "0 1px 3px rgba(0,0,0,0.08)" : "none",
               display: "flex",
               alignItems: "center",
-              justifyContent: "center",
-              gap: "5px"
+              gap: "4px"
             }}
           >
-            <Shield size={14} />
-            <span>Quản Trị Viên</span>
+            <Shield size={13} />
+            <span>Admin</span>
           </button>
         </div>
+      </div>
+
+      <div style={{
+        flex: 1,
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        overflowY: "auto"
+      }}>
 
         {errorMsg && (
           <div style={{
@@ -420,222 +364,309 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
           </div>
         )}
 
-        {/* TAB 1: SHOPEE SELLER LOGIN */}
+        {/* TAB 1: EXACT 1:1 SHOPEE SELLER SIGN-IN CARD (account.seller.shopee.com) */}
         {activeTab === "shopee" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-            {/* Primary Action: Official Shopee Seller SSO Login */}
+          <div style={{ width: "100%", maxWidth: "380px", margin: "0 auto" }}>
+            {/* The White Shopee Card */}
             <div style={{
-              backgroundColor: "#FFF7F4",
-              border: "1.5px solid #FFD8CC",
-              borderRadius: "12px",
-              padding: "14px 12px",
-              textAlign: "center",
-              boxShadow: "0 2px 8px rgba(238, 77, 45, 0.08)"
+              backgroundColor: "#FFFFFF",
+              borderRadius: "4px",
+              boxShadow: "0 3px 10px 0 rgba(0, 0, 0, 0.12)",
+              padding: "28px 24px 32px",
+              boxSizing: "border-box",
+              position: "relative"
             }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "4px" }}>
-                <ShopeeLogo size={18} />
-                <span style={{ fontSize: "13px", fontWeight: "800", color: "#C2410C" }}>
-                  ĐĂNG NHẬP BẰNG TÀI KHOẢN SHOPEE SELLER
-                </span>
-              </div>
-              <p style={{ fontSize: "11px", color: "#64748B", margin: "0 0 12px", lineHeight: "1.4" }}>
-                Bấm nút bên dưới để chuyển sang trang Kênh Người Bán Shopee chính thức, đăng nhập tài khoản và ủy quyền đồng bộ 100% toàn bộ đơn hàng thực tế về app.
-              </p>
+              {/* Header: Logo Shopee & QR Toggle Tooltip */}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
+                {/* Shopee Bag Logo + Shopee Wordmark */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <ShopeeLogo size={32} />
+                  <span style={{ fontSize: "22px", fontWeight: "800", color: "#EE4D2D", letterSpacing: "-0.5px" }}>
+                    Shopee
+                  </span>
+                </div>
 
-              <button
-                type="button"
-                onClick={handleOpenShopeeSSO}
-                disabled={loading}
-                style={{
-                  width: "100%",
-                  height: "46px",
-                  backgroundColor: "#EE4D2D",
-                  color: "#FFFFFF",
-                  border: "none",
-                  borderRadius: "10px",
-                  fontWeight: "800",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "8px",
-                  boxShadow: "0 4px 12px rgba(238, 77, 45, 0.35)",
-                }}
-              >
-                <ShopeeLogo size={20} />
-                <span>🛍️ Đăng Nhập Kênh Người Bán Shopee</span>
-                <ExternalLink size={14} />
-              </button>
-            </div>
+                {/* QR Toggle Tooltip + Icon */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", position: "relative" }}>
+                  <div 
+                    onClick={() => setShopeeLoginMode(shopeeLoginMode === "password" ? "qr" : "password")}
+                    style={{
+                      backgroundColor: "#FEF6D8",
+                      border: "1px solid #FFC400",
+                      color: "#EE4D2D",
+                      fontSize: "10.5px",
+                      fontWeight: "700",
+                      padding: "3px 7px",
+                      borderRadius: "3px",
+                      position: "relative",
+                      cursor: "pointer",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    <span>{shopeeLoginMode === "password" ? "Đăng nhập bằng mã QR" : "Đăng nhập mật khẩu"}</span>
+                    <div style={{
+                      position: "absolute",
+                      right: "-5px",
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      width: 0,
+                      height: 0,
+                      borderTop: "4px solid transparent",
+                      borderBottom: "4px solid transparent",
+                      borderLeft: "5px solid #FFC400"
+                    }}></div>
+                  </div>
 
-            {/* Divider */}
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "2px 0" }}>
-              <div style={{ flex: 1, height: "1px", backgroundColor: "#E2E8F0" }}></div>
-              <span style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8" }}>HOẶC KẾT NỐI NHANH QUA MÃ SHOP</span>
-              <div style={{ flex: 1, height: "1px", backgroundColor: "#E2E8F0" }}></div>
-            </div>
-
-            {/* Quick Connect Form */}
-            <form onSubmit={handleShopeeLogin} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              {/* Shop ID */}
-              <div>
-                <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                  Mã Shop ID (Shopee Seller Shop ID)
-                </label>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: "10px",
-                  padding: "0 12px",
-                  height: "42px",
-                  backgroundColor: "#FFFFFF"
-                }}>
-                  <Store size={15} color="#94A3B8" />
-                  <input 
-                    type="number" 
-                    value={shopId}
-                    onChange={(e) => setShopId(e.target.value)}
-                    placeholder="Ví dụ: 8829104" 
-                    required
-                    style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShopeeLoginMode(shopeeLoginMode === "password" ? "qr" : "password")}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: "2px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#EE4D2D"
+                    }}
+                    title={shopeeLoginMode === "password" ? "Quét mã QR" : "Nhập mật khẩu"}
+                  >
+                    {shopeeLoginMode === "password" ? (
+                      <QrCode size={26} strokeWidth={2.2} color="#EE4D2D" />
+                    ) : (
+                      <User size={24} strokeWidth={2.2} color="#EE4D2D" />
+                    )}
+                  </button>
                 </div>
               </div>
 
-              {/* Shop Name */}
-              <div>
-                <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                  Tên Gian Hàng (Shop Name)
-                </label>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: "10px",
-                  padding: "0 12px",
-                  height: "42px",
-                  backgroundColor: "#FFFFFF"
-                }}>
-                  <Box size={15} color="#94A3B8" />
-                  <input 
-                    type="text" 
-                    value={shopName}
-                    onChange={(e) => setShopName(e.target.value)}
-                    placeholder="Ví dụ: SPX Flagship Store VN" 
-                    required
-                    style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
-                  />
-                </div>
-              </div>
+              {/* Title */}
+              <h2 style={{
+                fontSize: "19px",
+                fontWeight: "700",
+                color: "#1E293B",
+                margin: "18px 0 18px",
+                textAlign: "left"
+              }}>
+                {shopeeLoginMode === "password" ? "Đăng nhập với tài khoản Chính/ Phụ" : "Đăng nhập với mã QR"}
+              </h2>
 
-              {/* Seller Username */}
-              <div>
-                <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                  Tên Đăng Nhập Shopee (Username)
-                </label>
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  border: "1px solid #E2E8F0",
-                  borderRadius: "10px",
-                  padding: "0 12px",
-                  height: "42px",
-                  backgroundColor: "#FFFFFF"
-                }}>
-                  <User size={15} color="#94A3B8" />
-                  <input 
-                    type="text" 
-                    value={sellerUsername}
-                    onChange={(e) => setSellerUsername(e.target.value)}
-                    placeholder="Ví dụ: shopee_seller_vn" 
-                    style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
-                  />
-                </div>
-              </div>
-
-              {/* Advanced Partner Key Toggle */}
-              <div style={{ marginTop: "2px" }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAdvanced(!showAdvanced)}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    padding: "0",
-                    color: "#64748B",
-                    fontSize: "11px",
-                    fontWeight: "600",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px"
-                  }}
-                >
-                  <span>⚙️ Cấu hình Partner ID & Key nâng cao (Tùy chọn)</span>
-                  <ChevronDown size={14} style={{ transform: showAdvanced ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-                </button>
-
-                {showAdvanced && (
-                  <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px", padding: "10px", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                    <div>
-                      <label style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }}>Shopee Partner ID</label>
-                      <input 
-                        type="number"
-                        value={partnerId}
-                        onChange={(e) => setPartnerId(e.target.value)}
-                        placeholder="Mặc định: 1008291"
-                        style={{ width: "100%", height: "32px", fontSize: "11px", borderRadius: "6px", border: "1px solid #CBD5E1", padding: "0 8px", marginTop: "3px" }}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }}>Shopee Partner Key (Secret)</label>
-                      <input 
-                        type="password"
-                        value={partnerKey}
-                        onChange={(e) => setPartnerKey(e.target.value)}
-                        placeholder="Nhập secret key nếu có"
-                        style={{ width: "100%", height: "32px", fontSize: "11px", borderRadius: "6px", border: "1px solid #CBD5E1", padding: "0 8px", marginTop: "3px" }}
-                      />
+              {/* Mode A: Password / Username / Phone / Email */}
+              {shopeeLoginMode === "password" ? (
+                <form onSubmit={handleShopeeSellerSubmit} style={{ display: "flex", flexDirection: "column" }}>
+                  {/* Account Input */}
+                  <div style={{ marginBottom: "14px" }}>
+                    <input 
+                      type="text"
+                      value={shopeeAccount}
+                      onChange={(e) => setShopeeAccount(e.target.value)}
+                      placeholder="Main/subaccount name/phone/email"
+                      required
+                      style={{
+                        width: "100%",
+                        height: "42px",
+                        border: "1px solid #CBD5E1",
+                        borderRadius: "4px",
+                        padding: "0 12px",
+                        fontSize: "13px",
+                        color: "#1E293B",
+                        outline: "none",
+                        boxSizing: "border-box"
+                      }}
+                    />
+                    <div style={{ fontSize: "11px", color: "#8E8E93", marginTop: "5px", textAlign: "left" }}>
+                      For example, input main/subaccount login name 'XXX:main'.
                     </div>
                   </div>
-                )}
+
+                  {/* Password Input */}
+                  <div style={{ marginBottom: "12px", position: "relative" }}>
+                    <input 
+                      type={shopeeShowPassword ? "text" : "password"}
+                      value={shopeePassword}
+                      onChange={(e) => setShopeePassword(e.target.value)}
+                      placeholder="Mật Khẩu"
+                      required
+                      style={{
+                        width: "100%",
+                        height: "42px",
+                        border: "1px solid #CBD5E1",
+                        borderRadius: "4px",
+                        padding: "0 40px 0 12px",
+                        fontSize: "13px",
+                        color: "#1E293B",
+                        outline: "none",
+                        boxSizing: "border-box"
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShopeeShowPassword(!shopeeShowPassword)}
+                      style={{
+                        position: "absolute",
+                        right: "12px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#94A3B8",
+                        padding: "0"
+                      }}
+                    >
+                      {shopeeShowPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+
+                  {/* Quên Mật Khẩu Link */}
+                  <div style={{ textAlign: "left", marginBottom: "20px" }}>
+                    <a 
+                      href="https://account.seller.shopee.com/reset/subaccount_identify"
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ fontSize: "12px", color: "#0055AA", textDecoration: "none" }}
+                    >
+                      Quên Mật Khẩu?
+                    </a>
+                  </div>
+
+                  {/* Shopee Orange Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    style={{
+                      width: "100%",
+                      height: "44px",
+                      backgroundColor: "#EE4D2D",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontSize: "14px",
+                      fontWeight: "700",
+                      cursor: loading ? "wait" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px",
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
+                      opacity: loading ? 0.8 : 1
+                    }}
+                  >
+                    {loading ? (
+                      <>
+                        <RefreshCw size={15} className="spin" />
+                        <span>Đang xác thực & đồng bộ đơn hàng...</span>
+                      </>
+                    ) : (
+                      <span>Đăng Nhập</span>
+                    )}
+                  </button>
+                </form>
+              ) : (
+                /* Mode B: Shopee QR Code Scanner View */
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "6px 0 2px" }}>
+                  <div style={{
+                    width: "155px",
+                    height: "155px",
+                    backgroundColor: "#FFFFFF",
+                    border: "2px solid #EE4D2D",
+                    borderRadius: "8px",
+                    padding: "8px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginBottom: "12px",
+                    boxShadow: "0 4px 12px rgba(238, 77, 45, 0.15)"
+                  }}>
+                    <div style={{
+                      width: "100%",
+                      height: "100%",
+                      background: "repeating-linear-gradient(45deg, #1E293B 0, #1E293B 4px, transparent 0, transparent 8px), repeating-linear-gradient(-45deg, #1E293B 0, #1E293B 4px, #FFFFFF 0, #FFFFFF 8px)",
+                      borderRadius: "4px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center"
+                    }}>
+                      <div style={{ width: "34px", height: "34px", backgroundColor: "#EE4D2D", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                        <ShopeeLogo size={20} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "12px", fontWeight: "700", color: "#1E293B", marginBottom: "4px" }}>
+                    Quét mã QR bằng ứng dụng Shopee
+                  </div>
+                  <div style={{ fontSize: "11px", color: "#64748B", maxWidth: "250px", textAlign: "center", marginBottom: "16px", lineHeight: "1.4" }}>
+                    Mở app Shopee trên điện thoại ➜ Bấm biểu tượng quét mã QR ở góc trên cùng để xác nhận.
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleShopeeSellerSubmit}
+                    disabled={loading}
+                    style={{
+                      width: "100%",
+                      height: "44px",
+                      backgroundColor: "#EE4D2D",
+                      color: "#FFFFFF",
+                      border: "none",
+                      borderRadius: "4px",
+                      fontSize: "13px",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <Check size={16} />
+                    <span>Tôi Đã Quét Xong ➜ Đăng Nhập Vào App</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShopeeLoginMode("password")}
+                    style={{
+                      marginTop: "12px",
+                      background: "none",
+                      border: "none",
+                      color: "#0055AA",
+                      fontSize: "11.5px",
+                      cursor: "pointer"
+                    }}
+                  >
+                    ← Đăng nhập với tài khoản & mật khẩu
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Bottom: Language & Official Shopee Link */}
+            <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "#64748B", fontSize: "12px", cursor: "pointer" }}>
+                <Globe size={13} />
+                <span>Tiếng Việt</span>
+                <ChevronDown size={13} />
               </div>
 
-              {/* Quick Submit Button */}
-              <button 
-                type="submit"
-                disabled={loading}
+              <a
+                href="https://account.seller.shopee.com/signin/oauth/identifier?account_type=2&client_id=e8f4e19db737102a4067c357b86ab805&lang=vi&login_types=%5B2,3,4%5D&max_auth_age=600&redirect_uri=https%3A%2F%2Fbanhang.shopee.vn%2Fapi%2Fselleraccount%2Fsubaccount_oauth_callback%2F&region=VN&response_type=code&scope=profile&sign=da07e38a8fd71024eba96cb1aeac4b58&state=eyJmZV9yZWRpcmVjdF9yZWdpb24iOiJWTiIsImZlX3JlZGlyZWN0X3VybCI6Ii8iLCJuZXh0IjoiLyIsIm5vbmNlIjoibHkxY2l2MGcifQ%3D%3D&support_qr_code_login=true&timestamp=1792035941&title=sla_title_main_sub_account_login"
+                target="_blank"
+                rel="noreferrer"
                 style={{
-                  marginTop: "4px",
-                  height: "44px",
-                  backgroundColor: "#FFFFFF",
-                  color: "#EE4D2D",
-                  border: "1.5px solid #EE4D2D",
-                  borderRadius: "10px",
-                  fontWeight: "700",
-                  fontSize: "12px",
-                  cursor: loading ? "wait" : "pointer",
+                  fontSize: "11px",
+                  color: "#94A3B8",
+                  textDecoration: "underline",
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px"
+                  gap: "4px"
                 }}
               >
-                {loading ? (
-                  <>
-                    <RefreshCw size={14} className="spin" />
-                    <span>Đang kết nối & lấy dữ liệu...</span>
-                  </>
-                ) : (
-                  <>
-                    <Store size={15} />
-                    <span>⚡ Kết Nối Nhanh & Lấy Toàn Bộ Đơn Hàng</span>
-                  </>
-                )}
-              </button>
-            </form>
+                <span>Mở trang đăng nhập Kênh Người Bán gốc trên Shopee ↗</span>
+              </a>
+            </div>
           </div>
         )}
 
@@ -766,385 +797,6 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
         </div>
       </div>
 
-      {/* =========================================================================
-       * SHOPEE SELLER SSO PORTAL MODAL
-       * ========================================================================= */}
-      {showShopeeSSOModal && (
-        <div style={{
-          position: "fixed",
-          inset: 0,
-          backgroundColor: "rgba(0,0,0,0.65)",
-          backdropFilter: "blur(4px)",
-          zIndex: 9999,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          padding: "16px"
-        }}>
-          <div style={{
-            width: "100%",
-            maxWidth: "380px",
-            backgroundColor: "#FFFFFF",
-            borderRadius: "16px",
-            overflow: "hidden",
-            boxShadow: "0 20px 40px rgba(0,0,0,0.25)",
-            display: "flex",
-            flexDirection: "column",
-            maxHeight: "92vh"
-          }}>
-            {/* Shopee Brand Header */}
-            <div style={{
-              backgroundColor: "#EE4D2D",
-              padding: "14px 16px",
-              color: "#FFFFFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between"
-            }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ width: "28px", height: "28px", borderRadius: "6px", backgroundColor: "#FFFFFF", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                  <ShopeeLogo size={18} />
-                </div>
-                <div>
-                  <div style={{ fontSize: "13px", fontWeight: "800", color: "#FFFFFF" }}>Kênh Người Bán Shopee</div>
-                  <div style={{ fontSize: "10px", color: "#FFE4DB" }}>Ủy quyền đăng nhập Shopee Seller Pro</div>
-                </div>
-              </div>
-              <button 
-                onClick={() => { if (ssoStep === 0) setShowShopeeSSOModal(false); }}
-                style={{ background: "none", border: "none", color: "#FFFFFF", cursor: "pointer", padding: "4px" }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div style={{ padding: "16px", overflowY: "auto", flex: 1 }}>
-              {ssoStep > 0 ? (
-                /* Animated Real-time Authentication & Synchronization Progress */
-                <div style={{ padding: "20px 8px", display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
-                  <div style={{
-                    width: "60px",
-                    height: "60px",
-                    borderRadius: "50%",
-                    backgroundColor: "#FFF1EC",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    marginBottom: "16px"
-                  }}>
-                    <RefreshCw size={26} color="#EE4D2D" className="spin" />
-                  </div>
-
-                  <h3 style={{ fontSize: "15px", fontWeight: "800", color: "#0F172A", marginBottom: "8px" }}>
-                    {ssoStep === 1 && "Đang xác thực Kênh Người Bán..."}
-                    {ssoStep === 2 && "Đang đồng bộ đơn hàng thực tế..."}
-                    {ssoStep === 3 && "Đăng nhập thành công!"}
-                  </h3>
-
-                  <p style={{ fontSize: "12px", color: "#64748B", marginBottom: "16px" }}>
-                    {ssoStep === 1 && "Đang kiểm tra tài khoản Shopee Seller & cấp quyền kết nối..."}
-                    {ssoStep === 2 && "Đang kéo toàn bộ đơn hàng thực tế, mã vận đơn SPX và tồn kho từ Shopee..."}
-                    {ssoStep === 3 && "Chuẩn bị chuyển sang Dashboard quản lý..."}
-                  </p>
-
-                  <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "8px", textAlign: "left" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: ssoStep >= 1 ? "#10B981" : "#94A3B8" }}>
-                      <CheckCircle2 size={15} color={ssoStep >= 1 ? "#10B981" : "#CBD5E1"} />
-                      <span>Xác thực tài khoản: {ssoUsername}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: ssoStep >= 2 ? "#10B981" : "#94A3B8" }}>
-                      <CheckCircle2 size={15} color={ssoStep >= 2 ? "#10B981" : "#CBD5E1"} />
-                      <span>Kết nối gian hàng #{ssoShopId} ({ssoShopName})</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "12px", color: ssoStep >= 2 ? "#10B981" : "#94A3B8" }}>
-                      <CheckCircle2 size={15} color={ssoStep >= 2 ? "#10B981" : "#CBD5E1"} />
-                      <span>Đồng bộ 100% toàn bộ đơn hàng thực tế</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* Tabbed Form */
-                <div>
-                  {/* SSO Tabs */}
-                  <div style={{ display: "flex", backgroundColor: "#F1F5F9", borderRadius: "8px", padding: "3px", marginBottom: "14px" }}>
-                    <button
-                      type="button"
-                      onClick={() => setSsoTab("account")}
-                      style={{
-                        flex: 1,
-                        padding: "6px 0",
-                        border: "none",
-                        borderRadius: "6px",
-                        backgroundColor: ssoTab === "account" ? "#FFFFFF" : "transparent",
-                        color: ssoTab === "account" ? "#EE4D2D" : "#64748B",
-                        fontWeight: "700",
-                        fontSize: "11px",
-                        cursor: "pointer"
-                      }}
-                    >
-                      Tài Khoản Shopee
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSsoTab("qr")}
-                      style={{
-                        flex: 1,
-                        padding: "6px 0",
-                        border: "none",
-                        borderRadius: "6px",
-                        backgroundColor: ssoTab === "qr" ? "#FFFFFF" : "transparent",
-                        color: ssoTab === "qr" ? "#EE4D2D" : "#64748B",
-                        fontWeight: "700",
-                        fontSize: "11px",
-                        cursor: "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: "4px"
-                      }}
-                    >
-                      <QrCode size={12} />
-                      <span>Quét Mã QR</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setSsoTab("partner")}
-                      style={{
-                        flex: 1,
-                        padding: "6px 0",
-                        border: "none",
-                        borderRadius: "6px",
-                        backgroundColor: ssoTab === "partner" ? "#FFFFFF" : "transparent",
-                        color: ssoTab === "partner" ? "#EE4D2D" : "#64748B",
-                        fontWeight: "700",
-                        fontSize: "11px",
-                        cursor: "pointer"
-                      }}
-                    >
-                      Open Platform
-                    </button>
-                  </div>
-
-                  {ssoError && (
-                    <div style={{ backgroundColor: "#FEF2F2", border: "1px solid #FCA5A5", borderRadius: "8px", padding: "8px 10px", color: "#B91C1C", fontSize: "11px", marginBottom: "10px" }}>
-                      {ssoError}
-                    </div>
-                  )}
-
-                  {/* TAB A: Account Login */}
-                  {ssoTab === "account" && (
-                    <form onSubmit={handleExecuteShopeeSSO} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <div>
-                        <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                          Tài khoản Shopee Seller (Email/SĐT/Tên đăng nhập)
-                        </label>
-                        <div style={{ display: "flex", alignItems: "center", border: "1px solid #CBD5E1", borderRadius: "8px", padding: "0 10px", height: "40px" }}>
-                          <User size={15} color="#94A3B8" />
-                          <input 
-                            type="text" 
-                            value={ssoUsername} 
-                            onChange={(e) => setSsoUsername(e.target.value)} 
-                            placeholder="Nhập tên đăng nhập hoặc số điện thoại"
-                            required
-                            style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px" }}
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                          Mật khẩu Kênh Người Bán
-                        </label>
-                        <div style={{ display: "flex", alignItems: "center", border: "1px solid #CBD5E1", borderRadius: "8px", padding: "0 10px", height: "40px" }}>
-                          <Lock size={15} color="#94A3B8" />
-                          <input 
-                            type={ssoShowPassword ? "text" : "password"} 
-                            value={ssoPassword} 
-                            onChange={(e) => setSsoPassword(e.target.value)} 
-                            placeholder="Nhập mật khẩu Shopee"
-                            required
-                            style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px" }}
-                          />
-                          <button type="button" onClick={() => setSsoShowPassword(!ssoShowPassword)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}>
-                            {ssoShowPassword ? <EyeOff size={15} /> : <Eye size={15} />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                          Mã Shop ID & Tên Gian Hàng
-                        </label>
-                        <div style={{ display: "flex", gap: "6px" }}>
-                          <input 
-                            type="number" 
-                            value={ssoShopId} 
-                            onChange={(e) => setSsoShopId(e.target.value)} 
-                            placeholder="Shop ID (8829104)"
-                            required
-                            style={{ width: "95px", border: "1px solid #CBD5E1", borderRadius: "8px", padding: "0 8px", height: "40px", fontSize: "12px" }}
-                          />
-                          <input 
-                            type="text" 
-                            value={ssoShopName} 
-                            onChange={(e) => setSsoShopName(e.target.value)} 
-                            placeholder="Tên Shop"
-                            required
-                            style={{ flex: 1, border: "1px solid #CBD5E1", borderRadius: "8px", padding: "0 8px", height: "40px", fontSize: "12px" }}
-                          />
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        style={{
-                          marginTop: "6px",
-                          height: "44px",
-                          backgroundColor: "#EE4D2D",
-                          color: "#FFFFFF",
-                          border: "none",
-                          borderRadius: "10px",
-                          fontWeight: "800",
-                          fontSize: "13px",
-                          cursor: "pointer",
-                          boxShadow: "0 4px 12px rgba(238, 77, 45, 0.35)",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "8px"
-                        }}
-                      >
-                        <ShopeeLogo size={18} />
-                        <span>Đăng Nhập & Kéo Toàn Bộ Đơn Hàng</span>
-                      </button>
-                    </form>
-                  )}
-
-                  {/* TAB B: QR Code Login */}
-                  {ssoTab === "qr" && (
-                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", padding: "8px 0" }}>
-                      <div style={{
-                        width: "150px",
-                        height: "150px",
-                        backgroundColor: "#FFFFFF",
-                        border: "2px solid #EE4D2D",
-                        borderRadius: "12px",
-                        padding: "10px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        position: "relative",
-                        marginBottom: "10px"
-                      }}>
-                        <div style={{
-                          width: "100%",
-                          height: "100%",
-                          background: "repeating-linear-gradient(45deg, #0F172A 0, #0F172A 4px, transparent 0, transparent 8px), repeating-linear-gradient(-45deg, #0F172A 0, #0F172A 4px, #FFFFFF 0, #FFFFFF 8px)",
-                          opacity: 0.85,
-                          borderRadius: "6px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center"
-                        }}>
-                          <div style={{ width: "34px", height: "34px", backgroundColor: "#EE4D2D", borderRadius: "8px", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 6px rgba(0,0,0,0.3)" }}>
-                            <ShopeeLogo size={20} />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={{ fontSize: "11px", fontWeight: "700", color: "#1E293B", marginBottom: "4px" }}>
-                        Quét mã QR bằng ứng dụng Shopee
-                      </div>
-                      <div style={{ fontSize: "10px", color: "#64748B", maxWidth: "260px", lineHeight: 1.4, marginBottom: "14px" }}>
-                        Mở app Shopee trên điện thoại ➜ Bấm biểu tượng quét mã QR ở góc trên cùng ➜ Quét mã và xác nhận đăng nhập.
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleExecuteShopeeSSO}
-                        style={{
-                          width: "100%",
-                          height: "42px",
-                          backgroundColor: "#EE4D2D",
-                          color: "#FFFFFF",
-                          border: "none",
-                          borderRadius: "10px",
-                          fontWeight: "800",
-                          fontSize: "12px",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px"
-                        }}
-                      >
-                        <Check size={16} />
-                        <span>Tôi Đã Quét Mã Xong ➜ Nhảy Vào App</span>
-                      </button>
-                    </div>
-                  )}
-
-                  {/* TAB C: Official Open Platform */}
-                  {ssoTab === "partner" && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      <div style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: "8px", padding: "10px", fontSize: "11px", color: "#475569", lineHeight: 1.4 }}>
-                        ℹ️ <strong>Shopee Open Platform v2:</strong> Dành cho doanh nghiệp đã đăng ký Developer Partner trên <code>open.shopee.com</code>. Đường dẫn ủy quyền được ký HMAC-SHA256 theo đúng tiêu chuẩn Shopee (có <code>timestamp</code> và <code>sign</code>).
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={handleOAuthRedirect}
-                        style={{
-                          height: "44px",
-                          backgroundColor: "#EE4D2D",
-                          color: "#FFFFFF",
-                          border: "none",
-                          borderRadius: "10px",
-                          fontWeight: "800",
-                          fontSize: "12px",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px",
-                          boxShadow: "0 4px 10px rgba(238, 77, 45, 0.25)"
-                        }}
-                      >
-                        <ExternalLink size={14} />
-                        <span>Ủy Quyền Shopee & Nhảy Vào App Đồng Bộ Đơn</span>
-                      </button>
-
-                      <a
-                        href="https://banhang.shopee.vn/"
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{
-                          height: "40px",
-                          backgroundColor: "#F1F5F9",
-                          color: "#334155",
-                          border: "1px solid #CBD5E1",
-                          borderRadius: "10px",
-                          fontWeight: "700",
-                          fontSize: "12px",
-                          textDecoration: "none",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: "6px"
-                        }}
-                      >
-                        <ShopeeLogo size={16} />
-                        <span>Mở Cổng Kênh Người Bán banhang.shopee.vn ↗</span>
-                      </a>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
