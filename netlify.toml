@@ -1,7 +1,6 @@
-# Netlify configuration for Shopee Seller Pro
+# Netlify config (Root)
 [build]
-  base = "frontend"
-  publish = "dist"
+  publish = "frontend/dist"
   command = "npm run build"
 
 [build.environment]

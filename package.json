@@ -6,7 +6,7 @@
   "scripts": {
     "start": "uv run tool-spx",
     "dev": "cd frontend && npm run dev",
-    "build": "cd frontend && npm install && npm run build"
+    "build": "cd frontend && npm install && npm run build && cd .. && rm -rf dist && cp -r frontend/dist dist"
   },
   "keywords": [
     "shopee",
