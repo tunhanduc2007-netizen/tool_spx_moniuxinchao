@@ -41,7 +41,7 @@ export const WelcomeScreen = ({ onNavigate }) => (
         BABY AND KID SHOP • Đại lý chính hãng NOUS
       </p>
       <p style={{ fontSize: "11px", color: "#94A3B8", marginTop: "1px" }}>
-        Kênh Người Bán Shopee (minhhy:bubu.237) & In Vận Đơn SPX
+        Kênh Người Bán Shopee (Mon Baby) & In Vận Đơn SPX
       </p>
 
       {/* 3D Illustration Mockup */}
@@ -206,8 +206,8 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
 
     try {
       const shopId = 2378829;
-      const shopName = "Bubu Baby - Đại Lý Chính Hãng NOUS";
-      const sellerUsername = "minhhy:bubu.237";
+      const shopName = "Mon Baby - Đại Lý Chính Hãng NOUS";
+      const sellerUsername = "monbaby";
 
       const res = await authAPI.shopeeSellerLogin({
         shop_id: shopId,
@@ -232,10 +232,10 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   };
 
   const fillNousDemo = () => {
-    setShopeeAccount("minhhy:bubu.237");
+    setShopeeAccount("monbaby");
     setShopeePassword("Shopee@Seller2026");
     setShopeeShopId("2378829");
-    setShopeeShopName("Bubu Baby - minhhy:bubu.237 (Đại Lý NOUS)");
+    setShopeeShopName("Mon Baby - Đại Lý NOUS");
     setOtpDigits(["8", "8", "2", "9", "1", "0"]);
     setErrorMsg("");
   };
@@ -273,7 +273,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
     setErrorMsg("");
     setShopeeOtpStep(true);
     setCountdown(58);
-    if (shopeeAccount.trim() === "minhhy:bubu.237" && otpDigits.every(d => !d)) {
+    if ((shopeeAccount.trim() === "monbaby" || shopeeAccount.trim() === "minhhy:bubu.237") && otpDigits.every(d => !d)) {
       setOtpDigits(["8", "8", "2", "9", "1", "0"]);
     }
   };
@@ -283,9 +283,9 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
     setLoading(true);
     setErrorMsg("");
 
-    const currentAcc = shopeeAccount.trim() || "Shop Shopee";
-    const isNous = currentAcc === "minhhy:bubu.237";
-    const displayName = shopeeShopName.trim() || (isNous ? "Bubu Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${currentAcc})`);
+    const currentAcc = shopeeAccount.trim() || "Mon Baby";
+    const isNous = currentAcc === "monbaby" || currentAcc === "minhhy:bubu.237" || currentAcc === "Mon Baby";
+    const displayName = shopeeShopName.trim() || (isNous ? "Mon Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${currentAcc})`);
     const shopIdNum = shopeeShopId ? Number(shopeeShopId) : (isNous ? 2378829 : 1889922);
 
     try {
@@ -753,10 +753,10 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            Bubu Baby - Đại Lý Chính Hãng NOUS
+                            Mon Baby - Đại Lý Chính Hãng NOUS
                           </div>
                           <div style={{ fontSize: "10px", color: "#64748B" }}>
-                            Tài khoản: <strong>minhhy:bubu.237</strong> • Phiên Safari: <span style={{ color: "#16A34A", fontWeight: "700" }}>Sẵn sàng</span>
+                            Gian hàng: <strong>Mon Baby</strong> • Phiên Safari: <span style={{ color: "#16A34A", fontWeight: "700" }}>Sẵn sàng</span>
                           </div>
                         </div>
                       </div>
@@ -1363,13 +1363,13 @@ export const DashboardScreen = ({ onNavigate, activeUser, refreshTrigger, onOpen
               />
               <div>
                 <div style={{ fontSize: "13.5px", fontWeight: "800", color: "#0F172A", display: "flex", alignItems: "center", gap: "6px" }}>
-                  <span>Mon Iu Xin Chào (minhhy:bubu.237)</span>
+                  <span>Mon Iu Xin Chào (Mon Baby)</span>
                   <span style={{ fontSize: "9px", backgroundColor: "#EFF6FF", color: "#2563EB", padding: "1px 5px", borderRadius: "4px", fontWeight: "700" }}>
                     Đại lý NOUS
                   </span>
                 </div>
                 <div style={{ fontSize: "10.5px", color: "#64748B", marginTop: "1px" }}>
-                  Tài khoản chính: <strong style={{ color: "#0F172A" }}>minhhy.mon237</strong> • Kênh Người Bán Shopee
+                  Tài khoản chính: <strong style={{ color: "#0F172A" }}>Mon Baby</strong> • Kênh Người Bán Shopee
                 </div>
               </div>
             </div>
@@ -3933,7 +3933,7 @@ export const SettingsScreen = ({ onNavigate, activeUser, onToast, setActiveUser 
   };
 
   const menuItems = [
-    { icon: Store, label: "Thông tin cửa hàng", action: () => onToast && onToast(`Cửa hàng: ${activeUser?.shop_name || "Bubu Baby (minhhy:bubu.237) - Đại Lý NOUS"}`) },
+    { icon: Store, label: "Thông tin cửa hàng", action: () => onToast && onToast(`Cửa hàng: ${activeUser?.shop_name || "Mon Baby - Đại Lý NOUS"}`) },
     { icon: Link, label: "Kết nối Shopee API", route: "shopee-api" },
     { icon: Warehouse, label: "Quản lý kho", route: "warehouse" },
     { icon: Printer, label: "Quản lý in ấn (Label Pro)", route: "batch-print" },

@@ -8,9 +8,9 @@ export const ThermalLabelModal = ({ labelData, onClose }) => {
   const trackingNumber = labelData.tracking_number || `SPX${orderSn.slice(-8)}VN`;
   const carrier = labelData.shipping_carrier || "SPX Express";
   const sender = labelData.sender || {
-    name: "Bubu Baby (minhhy:bubu.237)",
+    name: "Mon Baby - Đại Lý Chính Hãng NOUS",
     phone: "0908 237 888",
-    address: "Kho Bubu Baby - Phân Phối NOUS Chính Hãng, TP. Hà Nội"
+    address: "Kho Mon Baby - Phân Phối NOUS Chính Hãng, TP. Hà Nội"
   };
   const recipient = labelData.recipient || {
     name: "Nguyễn Hải Yến",

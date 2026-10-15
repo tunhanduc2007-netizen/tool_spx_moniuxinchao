@@ -879,17 +879,17 @@ function handleOfflineFallback(endpoint, options, originalErr) {
   // 1. Shopee Seller Login
   if (endpoint.includes("/api/auth/shopee-seller-login")) {
     const body = options.body ? JSON.parse(options.body) : {};
-    const sellerUsername = body.seller_username || "Shop Shopee";
-    const isNousDemo = sellerUsername === "minhhy:bubu.237";
-    const shopName = body.shop_name || (isNousDemo ? "Bubu Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${sellerUsername})`);
+    const sellerUsername = body.seller_username || "Mon Baby";
+    const isNousDemo = sellerUsername === "monbaby" || sellerUsername === "minhhy:bubu.237" || sellerUsername === "Mon Baby";
+    const shopName = body.shop_name || (isNousDemo ? "Mon Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${sellerUsername})`);
     const shopId = body.shop_id || (isNousDemo ? 2378829 : Math.floor(1000000 + Math.random() * 8999999));
     
     const user = {
       id: 1,
-      username: sellerUsername,
+      username: isNousDemo ? "monbaby" : sellerUsername,
       email: `${sellerUsername.replace(/[^a-zA-Z0-9]/g, '_')}@seller.shopee.vn`,
-      full_name: isNousDemo ? `Bubu Baby (${sellerUsername})` : shopName,
-      main_account: sellerUsername,
+      full_name: isNousDemo ? "Mon Baby - Đại Lý Chính Hãng NOUS" : shopName,
+      main_account: isNousDemo ? "monbaby.shopee" : sellerUsername,
       role: "ADMIN",
       shop_id: shopId,
       shop_name: shopName
@@ -898,7 +898,7 @@ function handleOfflineFallback(endpoint, options, originalErr) {
       id: 1,
       shop_id: shopId,
       shop_name: shopName,
-      seller_username: sellerUsername,
+      seller_username: isNousDemo ? "monbaby" : sellerUsername,
       is_connected: true
     };
     const mockToken = `mock_token_${sellerUsername.replace(/[^a-zA-Z0-9]/g, '_')}`;
@@ -933,13 +933,13 @@ function handleOfflineFallback(endpoint, options, originalErr) {
     const body = options.body ? JSON.parse(options.body) : {};
     const user = {
       id: 1,
-      username: body.username_or_email || "minhhy:bubu.237",
-      email: "minhhy_bubu.237@seller.shopee.vn",
-      full_name: "Bubu Baby (minhhy:bubu.237)",
-      main_account: "minhhy.mon237",
+      username: body.username_or_email || "monbaby",
+      email: "monbaby@seller.shopee.vn",
+      full_name: "Mon Baby - Đại Lý Chính Hãng NOUS",
+      main_account: "monbaby.shopee",
       role: "ADMIN",
       shop_id: 2378829,
-      shop_name: "Bubu Baby - Đại Lý Chính Hãng NOUS",
+      shop_name: "Mon Baby - Đại Lý Chính Hãng NOUS",
       warehouse_id: 1
     };
     const mockToken = "mock_jwt_token_admin";
@@ -954,13 +954,13 @@ function handleOfflineFallback(endpoint, options, originalErr) {
     if (!user) {
       user = {
         id: 1,
-        username: "minhhy:bubu.237",
-        email: "minhhy_bubu.237@seller.shopee.vn",
-        full_name: "Bubu Baby (minhhy:bubu.237)",
-        main_account: "minhhy.mon237",
+        username: "monbaby",
+        email: "monbaby@seller.shopee.vn",
+        full_name: "Mon Baby - Đại Lý Chính Hãng NOUS",
+        main_account: "monbaby.shopee",
         role: "ADMIN",
         shop_id: 2378829,
-        shop_name: "Bubu Baby - Đại Lý Chính Hãng NOUS"
+        shop_name: "Mon Baby - Đại Lý Chính Hãng NOUS"
       };
       setLocalStore("current_user", user);
     }
@@ -1039,9 +1039,9 @@ function handleOfflineFallback(endpoint, options, originalErr) {
       engaged_ccu: 186,
       total_stream: "3h",
       shop_info: {
-        username: "minhhy:bubu.237",
-        main_account: "minhhy.mon237",
-        shop_name: "Bubu Baby - Đại Lý Chính Hãng NOUS"
+        username: "monbaby",
+        main_account: "monbaby.shopee",
+        shop_name: "Mon Baby - Đại Lý Chính Hãng NOUS"
       }
     };
 
@@ -1118,8 +1118,8 @@ function handleOfflineFallback(endpoint, options, originalErr) {
     const shop = getLocalStore("connected_shop", {
       id: 1,
       shop_id: 28419201,
-      shop_name: "Bubu Baby - Đại Lý Chính Hãng NOUS",
-      seller_username: "minhhy:bubu.237",
+      shop_name: "Mon Baby - Đại Lý Chính Hãng NOUS",
+      seller_username: "monbaby",
       region: "VN",
       is_connected: true,
       last_sync_orders: new Date().toLocaleTimeString("vi-VN") + " 15/10/2026",
