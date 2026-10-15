@@ -75,8 +75,8 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
         aria-label="Thanh điều hướng chính"
         style={{
           height: "calc(58px + env(safe-area-inset-bottom, 0px))",
-          backgroundColor: "#FFFFFF",
-          borderTop: "1px solid #F1F5F9",
+          backgroundColor: "var(--bg-card)",
+          borderTop: "1px solid var(--border-light)",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-around",
@@ -89,9 +89,9 @@ export const MobileBottomNav = ({ activeTab = "dashboard", onTabChange }) => {
           width: "100%",
           zIndex: 1000,
           flexShrink: 0,
-          boxShadow: "0 -2px 10px rgba(0, 0, 0, 0.05)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          boxShadow: "0 -4px 16px rgba(0, 0, 0, 0.08)",
+          backdropFilter: "var(--nav-blur)",
+          WebkitBackdropFilter: "var(--nav-blur)",
         }}
       >
         {tabs.map((tab) => {

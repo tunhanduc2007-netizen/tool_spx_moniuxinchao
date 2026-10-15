@@ -1,8 +1,25 @@
-import React from "react";
-import { Printer, X, Download, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { Printer, X, Download, CheckCircle2, Sparkles, Layers } from "lucide-react";
 
 export const ThermalLabelModal = ({ labelData, onClose }) => {
   if (!labelData) return null;
+
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+    const rotateX = -(y / (rect.height / 2)) * 9;
+    const rotateY = (x / (rect.width / 2)) * 9;
+    setTilt({ x: rotateX, y: rotateY });
+  };
+
+  const handleMouseLeave = () => {
+    setTilt({ x: 0, y: 0 });
+    setIsHovered(false);
+  };
 
   const orderSn = labelData.order_sn || "261014SPX001VN";
   const trackingNumber = labelData.tracking_number || `SPX${orderSn.slice(-8)}VN`;
@@ -32,8 +49,9 @@ export const ThermalLabelModal = ({ labelData, onClose }) => {
     <div style={{
       position: "fixed",
       inset: 0,
-      backgroundColor: "rgba(15, 23, 42, 0.75)",
-      backdropFilter: "blur(6px)",
+      backgroundColor: "rgba(15, 23, 42, 0.8)",
+      backdropFilter: "blur(8px)",
+      WebkitBackdropFilter: "blur(8px)",
       zIndex: 1000,
       display: "flex",
       alignItems: "center",
@@ -63,20 +81,25 @@ export const ThermalLabelModal = ({ labelData, onClose }) => {
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <Printer size={18} color="#EE4D2D" />
             <span style={{ fontSize: "14px", fontWeight: "800", letterSpacing: "-0.01em" }}>
-              Phiếu Vận Đơn Shopee SPX Express
+              Phiếu Vận Đơn Shopee SPX Express (A6 3D)
             </span>
           </div>
           <button 
             onClick={onClose}
             style={{
-              background: "none",
+              background: "rgba(255, 255, 255, 0.1)",
               border: "none",
+              borderRadius: "8px",
+              width: "30px",
+              height: "30px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
               color: "#94A3B8",
-              cursor: "pointer",
-              padding: "4px"
+              cursor: "pointer"
             }}
           >
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
@@ -84,16 +107,28 @@ export const ThermalLabelModal = ({ labelData, onClose }) => {
         <div style={{
           flex: 1,
           overflowY: "auto",
-          padding: "20px",
-          backgroundColor: "#F1F5F9",
+          padding: "24px 20px",
+          backgroundColor: "#0B0F19",
           display: "flex",
-          justifyContent: "center"
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          perspective: "1000px"
         }}>
-          {/* Authentic SPX Thermal Label A6 (100x150mm) */}
+          {/* Hint */}
+          <div style={{ fontSize: "11px", color: "#94A3B8", marginBottom: "12px", display: "flex", alignItems: "center", gap: "5px" }}>
+            <Sparkles size={13} color="#F59E0B" />
+            <span>Di chuột hoặc lướt ngón tay để nghiêng xem con tem 3D thực tế</span>
+          </div>
+
+          {/* Authentic SPX Thermal Label A6 (100x150mm) with 3D Tilt */}
           <div 
             id="thermal-label-print-area"
+            onMouseMove={handleMouseMove}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={handleMouseLeave}
             style={{
-              width: "340px",
+              width: "330px",
               backgroundColor: "#FFFFFF",
               border: "2px solid #000000",
               padding: "12px",
@@ -101,7 +136,14 @@ export const ThermalLabelModal = ({ labelData, onClose }) => {
               color: "#000000",
               fontSize: "11px",
               lineHeight: 1.25,
-              boxShadow: "0 4px 14px rgba(0,0,0,0.12)"
+              borderRadius: "4px",
+              boxShadow: isHovered 
+                ? "0 25px 45px -10px rgba(0,0,0,0.7), 0 0 25px rgba(238,77,45,0.25)" 
+                : "0 8px 25px rgba(0,0,0,0.5)",
+              transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(1.02, 1.02, 1.02)`,
+              transition: isHovered ? "transform 0.08s ease-out" : "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s ease",
+              cursor: "grab",
+              position: "relative"
             }}
           >
             {/* Carrier & Sorting Code Header */}

@@ -4,19 +4,51 @@
   --primary-orange: #EE4D2D;
   --primary-orange-light: #FFF1EC;
   --primary-orange-hover: #D73211;
+  --primary-gradient: linear-gradient(135deg, #EE4D2D 0%, #FF5722 50%, #FF7043 100%);
   --bg-app: #F8FAFC;
-  --bg-card: #FFFFFF;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-solid: #FFFFFF;
   --text-dark: #0F172A;
   --text-sub: #64748B;
   --text-muted: #94A3B8;
-  --border-light: #F1F5F9;
-  --border-subtle: #E2E8F0;
+  --border-light: rgba(241, 245, 249, 0.9);
+  --border-subtle: rgba(226, 232, 240, 0.8);
   --success-green: #10B981;
   --success-light: #ECFDF5;
   --info-blue: #3B82F6;
   --info-light: #EFF6FF;
   --warning-amber: #F59E0B;
   --danger-red: #EF4444;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 16px -2px rgba(0,0,0,0.06), 0 2px 6px -1px rgba(0,0,0,0.03);
+  --shadow-lg: 0 12px 30px -4px rgba(0,0,0,0.08), 0 4px 12px -2px rgba(0,0,0,0.04);
+  --glow-orange: 0 4px 20px rgba(238, 77, 45, 0.25);
+  --nav-blur: blur(20px) saturate(180%);
+}
+
+[data-theme="dark"] {
+  --primary-orange: #FF5722;
+  --primary-orange-light: rgba(255, 87, 34, 0.15);
+  --primary-orange-hover: #FF7043;
+  --primary-gradient: linear-gradient(135deg, #FF5722 0%, #FF7043 100%);
+  --bg-app: #090D16;
+  --bg-card: rgba(17, 24, 39, 0.75);
+  --bg-card-solid: #111827;
+  --text-dark: #F8FAFC;
+  --text-sub: #94A3B8;
+  --text-muted: #64748B;
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(255, 255, 255, 0.12);
+  --success-green: #34D399;
+  --success-light: rgba(16, 185, 129, 0.15);
+  --info-blue: #60A5FA;
+  --info-light: rgba(59, 130, 246, 0.15);
+  --warning-amber: #FBBF24;
+  --danger-red: #F87171;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 20px -2px rgba(0,0,0,0.5);
+  --shadow-lg: 0 16px 40px -4px rgba(0,0,0,0.65);
+  --glow-orange: 0 4px 25px rgba(255, 87, 34, 0.45);
 }
 
 * {
@@ -25,6 +57,7 @@
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease;
 }
 
 html, body {
@@ -34,8 +67,8 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background-color: #F8FAFC;
-  color: #0F172A;
+  background-color: var(--bg-app);
+  color: var(--text-dark);
   overflow-x: hidden;
 }
 
@@ -45,46 +78,118 @@ html, body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-color: #F8FAFC;
+  background-color: var(--bg-app);
 }
 
-/* Full Width Mobile App - Expands 100% on Phone / Desktop / Inspect */
 .mobile-full-app {
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-color: #F8FAFC;
+  background-color: var(--bg-app);
   margin: 0;
   padding: 0;
 }
 
-/* Pinned Top Header across all screens */
+/* Glassmorphism Header */
 .sticky-top-header {
   position: sticky;
   top: 0;
   z-index: 50;
-  background-color: #FFFFFF;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  background-color: var(--bg-card);
+  backdrop-filter: var(--nav-blur);
+  -webkit-backdrop-filter: var(--nav-blur);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
   padding-top: env(safe-area-inset-top, 0px);
   width: 100%;
 }
 
+/* Glass Cards */
+.glass-card {
+  background-color: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Pulsing Live Dot */
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background-color: #EE4D2D;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 0 0 rgba(238, 77, 45, 0.7);
+  animation: pulseGlow 1.8s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes pulseGlow {
+  0% {
+    box-shadow: 0 0 0 0 rgba(238, 77, 45, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(238, 77, 45, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(238, 77, 45, 0);
+  }
+}
+
+/* Laser Scanning Line Animation */
+@keyframes scannerLaser {
+  0% {
+    top: 15%;
+    opacity: 0.7;
+  }
+  50% {
+    top: 85%;
+    opacity: 1;
+  }
+  100% {
+    top: 15%;
+    opacity: 0.7;
+  }
+}
+
+/* 3D Thermal Label Card */
+.thermal-3d-sticker {
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+  cursor: pointer;
+}
+
+.thermal-3d-sticker:hover {
+  transform: perspective(1000px) rotateX(4deg) rotateY(-4deg) translateY(-4px);
+  box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.25), 0 0 20px rgba(238, 77, 45, 0.15);
+}
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
+  background: rgba(148, 163, 184, 0.25);
   border-radius: 999px;
 }
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
 
-/* Hide scrollbar utility */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -93,38 +198,28 @@ html, body {
   scrollbar-width: none;
 }
 
-/* Button active push effect */
+/* Button active tactile push effect */
 button:active {
-  transform: scale(0.985);
+  transform: scale(0.975);
 }
 
-/* Completely hide and remove Netlify Badge, HUD, and Drawer */
-netlify-badge,
-netlify-hud,
-nl-badge,
-nl-hud,
-[data-netlify-site-id],
-.netlify-badge,
-.nl-badge,
-[class*="netlify-badge"],
-[id*="netlify-badge"],
-[class*="nl-badge"],
-[id*="nl-badge"],
-[class*="nl-hud"],
-[id*="nl-hud"],
-iframe[src*="netlify"],
-a[href*="netlify.com"],
-div:has(> a[href*="netlify.com"]),
-div:has(> [class*="netlify"]) {
+/* Spinning Utility */
+.spin {
+  animation: spinRotate 1s linear infinite;
+}
+
+@keyframes spinRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Netlify Badge Blocker */
+netlify-badge, netlify-hud, nl-badge, nl-hud,
+[data-netlify-site-id], .netlify-badge, .nl-badge,
+[class*="netlify-badge"], [id*="netlify-badge"],
+iframe[src*="netlify"], a[href*="netlify.com"] {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
-  height: 0 !important;
-  width: 0 !important;
-  position: absolute !important;
-  top: -99999px !important;
-  left: -99999px !important;
-  z-index: -9999 !important;
 }
-
