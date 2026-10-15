@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Mon Baby SPX - Shopee Seller Auto Sync",
+  "version": "1.0.0",
+  "description": "Tự động đồng bộ đơn hàng từ Kênh Người Bán Shopee sang App Mon Baby SPX in hàng loạt, không cần xuất Excel.",
+  "permissions": [
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://banhang.shopee.vn/*",
+    "https://seller.shopee.vn/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Mon Baby SPX Sync"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://banhang.shopee.vn/*",
+        "https://seller.shopee.vn/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

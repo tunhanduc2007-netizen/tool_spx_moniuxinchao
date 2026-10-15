@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { ShopeeLogo, StatusBar, MobileBottomNav } from "./common";
 import {
   authAPI, ordersAPI, printAPI, warehouseAPI,
@@ -12,8 +12,16 @@ import {
   Store, Printer, Shield, Key, LogOut, RefreshCw, AlertCircle,
   Link, Warehouse, Sliders, Calendar, TrendingUp, Box, Award,
   Sparkles, Clock, Truck, Copy, ExternalLink, FileText, Globe,
-  QrCode, X
+  QrCode, X, Upload, Bluetooth, Camera, FileSpreadsheet, CheckCheck,
+  Zap, Download, Smartphone
 } from "lucide-react";
+import { parseShopeeExcelFile } from "../utils/shopeeExcelParser";
+import {
+  connectBluetoothPrinter, isBluetoothSupported, isPrinterConnected,
+  getConnectedDeviceName, printBatchViaBluetooth, disconnectBluetoothPrinter,
+  playChime
+} from "../utils/bluetoothPrinter";
+import { BarcodeScannerModal } from "./BarcodeScannerModal";
 
 /**
  * =========================================================================
@@ -2471,9 +2479,15 @@ export const OrderDetailScreen = ({ onNavigate, selectedOrder, onToast, onOpenPr
  */
 export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModal, onToast }) => {
   const [activeTab, setActiveTab] = useState("unprinted");
+  const [itemTypeFilter, setItemTypeFilter] = useState("all"); // "all" | "single" | "multi"
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [bluetoothDevice, setBluetoothDevice] = useState(getConnectedDeviceName());
+  const [bluetoothPrinting, setBluetoothPrinting] = useState(false);
+  const [btProgress, setBtProgress] = useState({ current: 0, total: 0 });
+  const fileInputRef = useRef(null);
 
   const fetchOrders = () => {
     setLoading(true);
@@ -2485,6 +2499,8 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
           info: `${o.items_count || 1} SP | ${Number(o.total_amount).toLocaleString("vi-VN")}đ • ${o.customer_name}`,
           printed: !!o.is_printed,
           tracking: o.tracking_number,
+          is_single_item: (o.items_count || 1) === 1,
+          items: o.items || [{ item_name: "NOUS Baby chính hãng", model_name: "Tiêu chuẩn", quantity: o.items_count || 1 }],
           raw: o
         })));
       } else {
@@ -2495,17 +2511,133 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
 
   useEffect(() => {
     fetchOrders();
+
+    // Listen to Chrome Extension BroadcastChannel sync
+    let channel;
+    try {
+      channel = new BroadcastChannel("monbaby_spx_sync_channel");
+      channel.onmessage = (event) => {
+        if (event.data && event.data.type === "SYNC_SHOPEE_ORDERS") {
+          if (onToast) onToast("⚡ Đã nhận tín hiệu đồng bộ đơn tự động từ Kênh Người Bán Shopee!");
+          fetchOrders();
+        }
+      };
+    } catch (e) {}
+
+    return () => {
+      if (channel) channel.close();
+    };
   }, []);
 
-  const displayedOrders = activeTab === "unprinted" 
-    ? orders.filter(o => !o.printed) 
-    : orders.filter(o => o.printed);
+  const handleExcelUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (onToast) onToast(`Đang phân tích file Excel đơn Shopee: ${file.name}...`);
+
+    try {
+      const res = await parseShopeeExcelFile(file);
+      if (res.success && res.orders.length > 0) {
+        const savedOrders = res.orders;
+        localStorage.setItem("spx_orders", JSON.stringify(savedOrders));
+
+        const formatted = savedOrders.map(o => ({
+          id: o.id,
+          sn: o.order_sn,
+          info: `${o.items_count || 1} SP | ${Number(o.total_amount).toLocaleString("vi-VN")}đ • ${o.customer_name}`,
+          printed: !!o.is_printed,
+          tracking: o.tracking_number,
+          is_single_item: o.is_single_item,
+          items: o.items || [],
+          raw: o
+        }));
+
+        setOrders(formatted);
+        setSelectedOrders(formatted.map(o => o.id));
+        playChime("success");
+
+        if (onToast) {
+          onToast(`🎉 Đã nạp thành công ${res.summary.totalOrders} đơn thật từ Shopee! (${res.summary.singleItemOrders} đơn 1 món, ${res.summary.multiItemOrders} đơn nhiều món)`);
+        }
+      } else {
+        if (onToast) onToast(`Lỗi đọc file: ${res.error || 'Vui lòng kiểm tra lại file Excel xuất từ Shopee'}`);
+      }
+    } catch (err) {
+      if (onToast) onToast(`Lỗi: ${err.message || 'Không thể đọc file Excel'}`);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleConnectBluetooth = async () => {
+    try {
+      const res = await connectBluetoothPrinter();
+      setBluetoothDevice(res.deviceName);
+      if (onToast) onToast(`🟢 Đã kết nối máy in Bluetooth: ${res.deviceName}!`);
+    } catch (err) {
+      if (onToast) onToast(`Lỗi kết nối Bluetooth: ${err.message || 'Hủy ghép nối'}`);
+    }
+  };
+
+  const handleDirectBluetoothBatchPrint = async () => {
+    const selectedObjs = displayedOrders.filter(o => selectedOrders.includes(o.id)).map(o => o.raw || o);
+    if (!selectedObjs.length) {
+      if (onToast) onToast("Vui lòng chọn ít nhất 1 đơn hàng để in qua Bluetooth!");
+      return;
+    }
+
+    if (!isPrinterConnected()) {
+      await handleConnectBluetooth();
+    }
+
+    if (!isPrinterConnected()) return;
+
+    setBluetoothPrinting(true);
+    if (onToast) onToast(`⚡ Đang truyền lệnh in trực tiếp qua Bluetooth cho ${selectedObjs.length} đơn...`);
+
+    try {
+      await printBatchViaBluetooth(selectedObjs, (cur, total, ord) => {
+        setBtProgress({ current: cur, total });
+      });
+
+      const printedSns = selectedObjs.map(o => o.order_sn || o.sn);
+      const updated = orders.map(o => printedSns.includes(o.sn) ? { ...o, printed: true } : o);
+      setOrders(updated);
+      setSelectedOrders([]);
+      playChime("success");
+      if (onToast) onToast(`🎉 Đã in hoàn tất ${selectedObjs.length} tem SPX Express qua máy in nhiệt!`);
+    } catch (err) {
+      if (onToast) onToast(`Lỗi in Bluetooth: ${err.message}`);
+    } finally {
+      setBluetoothPrinting(false);
+      setBtProgress({ current: 0, total: 0 });
+    }
+  };
+
+  const displayedOrders = orders.filter(o => {
+    // 1. Printed status tab
+    const matchesPrint = activeTab === "unprinted" ? !o.printed : o.printed;
+    if (!matchesPrint) return false;
+
+    // 2. Item count filter
+    if (itemTypeFilter === "single") return o.is_single_item;
+    if (itemTypeFilter === "multi") return !o.is_single_item;
+    return true;
+  });
 
   const toggleSelect = (id) => {
     if (selectedOrders.includes(id)) {
       setSelectedOrders(selectedOrders.filter(x => x !== id));
     } else {
       setSelectedOrders([...selectedOrders, id]);
+    }
+  };
+
+  const selectAll = () => {
+    if (selectedOrders.length === displayedOrders.length) {
+      setSelectedOrders([]);
+    } else {
+      setSelectedOrders(displayedOrders.map(o => o.id));
     }
   };
 
@@ -2522,55 +2654,197 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+      {/* Hidden file input for Excel upload */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleExcelUpload} 
+        accept=".xlsx,.xls,.csv" 
+        style={{ display: "none" }} 
+      />
+
+      {/* Barcode Camera Scanner Modal */}
+      <BarcodeScannerModal 
+        isOpen={scannerOpen} 
+        onClose={() => setScannerOpen(false)}
+        orders={orders.map(o => o.raw || o)}
+        onOrderMatched={(matched) => {
+          if (!selectedOrders.includes(matched.id)) {
+            setSelectedOrders(prev => [...prev, matched.id]);
+          }
+        }}
+        onToast={onToast}
+      />
+
       {/* Pinned Top Header & Controls */}
       <div className="sticky-top-header">
         <StatusBar dark={true} />
-        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", backgroundColor: "#FFFFFF" }}>
-          <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
-            <ArrowLeft size={18} color="#0F172A" />
-          </button>
-          <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>In hàng loạt</h2>
+        <div style={{ padding: "8px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
+              <ArrowLeft size={18} color="#0F172A" />
+            </button>
+            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>In hàng loạt</h2>
+          </div>
+
+          {/* Top Quick Actions: AI Scanner & Bluetooth */}
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              type="button"
+              onClick={() => setScannerOpen(true)}
+              style={{
+                backgroundColor: "#F1F5F9",
+                border: "1px solid #CBD5E1",
+                borderRadius: "6px",
+                padding: "5px 8px",
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "#1E293B",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px"
+              }}
+              title="Mở camera quét mã vạch đóng gói"
+            >
+              <Camera size={13} color="#EE4D2D" />
+              <span>Quét AI</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleConnectBluetooth}
+              style={{
+                backgroundColor: bluetoothDevice ? "#ECFDF5" : "#EFF6FF",
+                border: bluetoothDevice ? "1px solid #A7F3D0" : "1px solid #BFDBFE",
+                borderRadius: "6px",
+                padding: "5px 8px",
+                fontSize: "11px",
+                fontWeight: "700",
+                color: bluetoothDevice ? "#059669" : "#2563EB",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px"
+              }}
+              title="Kết nối máy in nhiệt Bluetooth"
+            >
+              <Bluetooth size={13} color={bluetoothDevice ? "#059669" : "#2563EB"} />
+              <span>{bluetoothDevice ? "Đã nối" : "Nối Máy In"}</span>
+            </button>
+          </div>
         </div>
 
-        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
-          {/* Pills */}
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button 
-              onClick={() => setActiveTab("unprinted")}
+        {/* Action Pills & Excel Upload Bar */}
+        <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF", borderBottom: "1px solid #F1F5F9" }}>
+          {/* Main Status Tab Pills */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+            <div style={{ display: "flex", gap: "6px" }}>
+              <button 
+                onClick={() => setActiveTab("unprinted")}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  border: "none",
+                  backgroundColor: activeTab === "unprinted" ? "#FFF1EC" : "#F1F5F9",
+                  color: activeTab === "unprinted" ? "#EE4D2D" : "#64748B",
+                  cursor: "pointer"
+                }}
+              >
+                Đơn chưa in ({orders.filter(o => !o.printed).length})
+              </button>
+              <button 
+                onClick={() => setActiveTab("printed")}
+                style={{
+                  padding: "5px 12px",
+                  borderRadius: "99px",
+                  fontSize: "11px",
+                  fontWeight: "700",
+                  border: "none",
+                  backgroundColor: activeTab === "printed" ? "#FFF1EC" : "#F1F5F9",
+                  color: activeTab === "printed" ? "#EE4D2D" : "#64748B",
+                  cursor: "pointer"
+                }}
+              >
+                Đã in ({orders.filter(o => o.printed).length})
+              </button>
+            </div>
+
+            {/* Nạp Excel Shopee Button */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
               style={{
-                padding: "5px 12px",
-                borderRadius: "99px",
+                backgroundColor: "#FFF1EC",
+                border: "1.5px solid #FFD8CC",
+                borderRadius: "8px",
+                padding: "5px 10px",
                 fontSize: "11px",
-                fontWeight: "700",
-                border: "none",
-                backgroundColor: activeTab === "unprinted" ? "#FFF1EC" : "#F1F5F9",
-                color: activeTab === "unprinted" ? "#EE4D2D" : "#64748B",
-                cursor: "pointer"
+                fontWeight: "800",
+                color: "#EE4D2D",
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "5px",
+                boxShadow: "0 1px 3px rgba(238, 77, 45, 0.15)"
               }}
             >
-              Đơn chưa in ({orders.filter(o => !o.printed).length})
-            </button>
-            <button 
-              onClick={() => setActiveTab("printed")}
-              style={{
-                padding: "5px 12px",
-                borderRadius: "99px",
-                fontSize: "11px",
-                fontWeight: "700",
-                border: "none",
-                backgroundColor: activeTab === "printed" ? "#FFF1EC" : "#F1F5F9",
-                color: activeTab === "printed" ? "#EE4D2D" : "#64748B",
-                cursor: "pointer"
-              }}
-            >
-              Đã in ({orders.filter(o => o.printed).length})
+              <Upload size={13} />
+              <span>📂 Nạp File Excel Shopee</span>
             </button>
           </div>
 
-          {/* Paper format info */}
-          <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px", fontSize: "10px", color: "#64748B" }}>
-            <Printer size={12} color="#EE4D2D" />
-            <span>Khổ in mặc định: <strong>A6 Thermal (100x150mm) SPX Express</strong></span>
+          {/* Sub Filters: Single item vs Multi items */}
+          <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
+            <span style={{ fontSize: "10.5px", color: "#64748B", fontWeight: "600" }}>Gom đơn:</span>
+            {[
+              { id: "all", label: "Tất cả" },
+              { id: "single", label: `Đơn 1 món (${orders.filter(o => o.is_single_item && (activeTab === "unprinted" ? !o.printed : o.printed)).length}) ⚡` },
+              { id: "multi", label: `Đơn gộp 2+ món (${orders.filter(o => !o.is_single_item && (activeTab === "unprinted" ? !o.printed : o.printed)).length})` }
+            ].map(f => (
+              <button
+                key={f.id}
+                onClick={() => setItemTypeFilter(f.id)}
+                style={{
+                  border: "none",
+                  borderRadius: "6px",
+                  padding: "3px 8px",
+                  fontSize: "10px",
+                  fontWeight: "700",
+                  cursor: "pointer",
+                  backgroundColor: itemTypeFilter === f.id ? "#1E293B" : "#F1F5F9",
+                  color: itemTypeFilter === f.id ? "#FFFFFF" : "#64748B"
+                }}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Paper format info & Select all toggle */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "8px", fontSize: "10px", color: "#64748B" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+              <Printer size={12} color="#EE4D2D" />
+              <span>Khổ in: <strong>A6 Thermal (100x150mm) SPX Express</strong></span>
+            </div>
+
+            <button
+              type="button"
+              onClick={selectAll}
+              style={{
+                background: "none",
+                border: "none",
+                fontSize: "11px",
+                fontWeight: "700",
+                color: "#EE4D2D",
+                cursor: "pointer",
+                padding: "0"
+              }}
+            >
+              {selectedOrders.length === displayedOrders.length ? "Bỏ chọn tất cả" : "Chọn tất cả đơn"}
+            </button>
           </div>
         </div>
       </div>
@@ -2583,24 +2857,30 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
             <div style={{ fontSize: "14px", fontWeight: "700", color: "#334155" }}>
               {activeTab === "unprinted" ? "Không có đơn hàng nào cần in" : "Chưa có đơn nào đã in"}
             </div>
-            <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>
-              {activeTab === "unprinted" ? "Tất cả đơn đã được in hoặc chưa có đơn mới từ Shopee." : "Các đơn đã in vận đơn sẽ hiển thị tại đây."}
+            <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", maxWidth: "280px" }}>
+              {activeTab === "unprinted" 
+                ? "Bấm nút 'Nạp File Excel Shopee' ở trên để nạp 44 đơn thật từ Kênh Người Bán Shopee của bạn vào in ngay!" 
+                : "Các đơn đã in vận đơn sẽ hiển thị tại đây."}
             </div>
             <button
-              onClick={() => onNavigate("orders")}
+              onClick={() => fileInputRef.current?.click()}
               style={{
                 marginTop: "14px",
-                padding: "8px 14px",
-                backgroundColor: "#FFF1EC",
-                color: "#EE4D2D",
-                border: "1px solid #FFD8CC",
+                padding: "8px 16px",
+                backgroundColor: "#EE4D2D",
+                color: "#FFFFFF",
+                border: "none",
                 borderRadius: "8px",
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: "700",
-                cursor: "pointer"
+                cursor: "pointer",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px"
               }}
             >
-              Xem danh sách đơn hàng
+              <Upload size={14} />
+              <span>📂 Tải File Excel Đơn Thật Shopee</span>
             </button>
           </div>
         ) : (
@@ -2609,48 +2889,136 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
               backgroundColor: "#FFFFFF",
               borderRadius: "10px",
               padding: "10px 12px",
-              border: "1px solid #F1F5F9",
+              border: selectedOrders.includes(o.id) ? "1.5px solid #EE4D2D" : "1px solid #F1F5F9",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between"
+              alignItems: "flex-start",
+              justifyContent: "space-between",
+              gap: "8px",
+              boxShadow: selectedOrders.includes(o.id) ? "0 2px 8px rgba(238, 77, 45, 0.08)" : "none"
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", flex: 1 }}>
+                {/* Checkbox */}
                 <div 
                   onClick={() => toggleSelect(o.id)}
                   style={{
-                    width: "16px",
-                    height: "16px",
+                    width: "18px",
+                    height: "18px",
                     borderRadius: "4px",
                     backgroundColor: selectedOrders.includes(o.id) ? "#EE4D2D" : "transparent",
                     border: `1.5px solid ${selectedOrders.includes(o.id) ? "#EE4D2D" : "#CBD5E1"}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    marginTop: "2px",
+                    flexShrink: 0
                   }}
                 >
-                  {selectedOrders.includes(o.id) && <Check size={11} color="#fff" strokeWidth={3} />}
+                  {selectedOrders.includes(o.id) && <Check size={12} color="#fff" strokeWidth={3} />}
                 </div>
-                <div>
-                  <div style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>#{o.sn}</div>
-                  <div style={{ fontSize: "9px", color: "#64748B", marginTop: "1px" }}>{o.info}</div>
+
+                {/* Product Thumbnail / Icon */}
+                <div style={{
+                  width: "44px",
+                  height: "44px",
+                  borderRadius: "6px",
+                  backgroundColor: "#FFF1EC",
+                  border: "1px solid #FFE4DB",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                  overflow: "hidden"
+                }}>
+                  {o.raw?.image_url ? (
+                    <img src={o.raw.image_url} alt="NOUS" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  ) : (
+                    <div style={{ textAlign: "center" }}>
+                      <span style={{ fontSize: "16px" }}>👶</span>
+                      <div style={{ fontSize: "7px", fontWeight: "800", color: "#EE4D2D" }}>NOUS</div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Information & Items */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>#{o.sn}</span>
+                    <span style={{ fontSize: "9px", color: "#EE4D2D", fontWeight: "700", backgroundColor: "#FFF1EC", padding: "1px 5px", borderRadius: "3px" }}>
+                      {o.tracking || "SPX Express"}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: "10px", color: "#475569", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {o.info}
+                  </div>
+
+                  {/* Items Preview List */}
+                  {o.items && o.items.length > 0 && (
+                    <div style={{ marginTop: "4px", backgroundColor: "#F8FAFC", borderRadius: "4px", padding: "4px 6px" }}>
+                      {o.items.slice(0, 2).map((it, idx) => (
+                        <div key={idx} style={{ fontSize: "9.5px", color: "#334155", lineHeight: "1.3" }}>
+                          • <strong>{it.quantity}x</strong> {it.item_name} <span style={{ color: "#64748B" }}>({it.model_name || 'Tiêu chuẩn'})</span>
+                        </div>
+                      ))}
+                      {o.items.length > 2 && (
+                        <div style={{ fontSize: "9px", color: "#94A3B8" }}>
+                          + {o.items.length - 2} sản phẩm khác...
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <span style={{ 
-                fontSize: "9px", 
-                fontWeight: "700", 
-                color: o.printed ? "#10B981" : "#F97316", 
-                backgroundColor: o.printed ? "#ECFDF5" : "#FFF1EC", 
-                padding: "2px 6px", 
-                borderRadius: "4px" 
-              }}>
-                {o.printed ? "Đã in" : "Chờ in"}
-              </span>
+              {/* Status and Single item Badges */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
+                <span style={{ 
+                  fontSize: "9px", 
+                  fontWeight: "700", 
+                  color: o.printed ? "#10B981" : "#F97316", 
+                  backgroundColor: o.printed ? "#ECFDF5" : "#FFF1EC", 
+                  padding: "2px 6px", 
+                  borderRadius: "4px" 
+                }}>
+                  {o.printed ? "Đã in" : "Chờ in"}
+                </span>
+
+                <span style={{
+                  fontSize: "8.5px",
+                  fontWeight: "700",
+                  color: o.is_single_item ? "#059669" : "#7C3AED",
+                  backgroundColor: o.is_single_item ? "#D1FAE5" : "#EDE9FE",
+                  padding: "2px 5px",
+                  borderRadius: "3px"
+                }}>
+                  {o.is_single_item ? "1 Món ⚡" : `${o.raw?.items_count || o.items?.length || 2} Món`}
+                </span>
+              </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Bluetooth Printing Progress Bar Modal */}
+      {bluetoothPrinting && (
+        <div style={{
+          padding: "10px 14px",
+          backgroundColor: "#0F172A",
+          color: "#FFFFFF",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <RefreshCw size={14} className="spin" color="#10B981" />
+            <span style={{ fontSize: "11px", fontWeight: "700" }}>
+              Đang truyền lệnh in Bluetooth ({btProgress.current}/{btProgress.total})...
+            </span>
+          </div>
+          <span style={{ fontSize: "10px", color: "#94A3B8" }}>Đang nhả tem A6 SPX</span>
+        </div>
+      )}
 
       {/* Bottom Sticky Action Bar */}
       <div style={{
@@ -2659,32 +3027,66 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
         borderTop: "1px solid #E2E8F0",
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between"
+        justifyContent: "space-between",
+        gap: "8px"
       }}>
         <div>
-          <div style={{ fontSize: "11px", fontWeight: "700", color: "#0F172A" }}>
-            Đã chọn {displayedOrders.filter(o => selectedOrders.includes(o.id)).length} đơn
+          <div style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>
+            Đã chọn {displayedOrders.filter(o => selectedOrders.includes(o.id)).length} / {displayedOrders.length} đơn
           </div>
-          <div style={{ fontSize: "9px", color: "#94A3B8" }}>In tem nhiệt SPX Express</div>
+          <div style={{ fontSize: "9px", color: "#94A3B8" }}>Khổ in A6 Thermal (100x150mm)</div>
         </div>
 
-        <button 
-          onClick={handleStartBatchPrint}
-          style={{
-            height: "36px",
-            backgroundColor: "#EE4D2D",
-            color: "#FFFFFF",
-            border: "none",
-            borderRadius: "8px",
-            padding: "0 16px",
-            fontSize: "12px",
-            fontWeight: "700",
-            cursor: "pointer",
-            boxShadow: "0 2px 6px rgba(238,77,45,0.3)"
-          }}
-        >
-          In qua Label Pro
-        </button>
+        <div style={{ display: "flex", gap: "6px" }}>
+          {/* Direct Bluetooth Print button */}
+          <button
+            type="button"
+            onClick={handleDirectBluetoothBatchPrint}
+            disabled={bluetoothPrinting}
+            style={{
+              height: "38px",
+              backgroundColor: bluetoothDevice ? "#059669" : "#2563EB",
+              color: "#FFFFFF",
+              border: "none",
+              borderRadius: "8px",
+              padding: "0 12px",
+              fontSize: "11.5px",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              boxShadow: "0 2px 6px rgba(5, 150, 105, 0.25)"
+            }}
+          >
+            <Zap size={14} />
+            <span>In Bluetooth (0s)</span>
+          </button>
+
+          {/* Standard Label Pro Print */}
+          <button 
+            type="button"
+            onClick={handleStartBatchPrint}
+            style={{
+              height: "38px",
+              backgroundColor: "#EE4D2D",
+              color: "#FFFFFF",
+              border: "none",
+              borderRadius: "8px",
+              padding: "0 14px",
+              fontSize: "12px",
+              fontWeight: "700",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              boxShadow: "0 2px 6px rgba(238, 77, 45, 0.3)"
+            }}
+          >
+            <Printer size={14} />
+            <span>In Label Pro</span>
+          </button>
+        </div>
       </div>
 
       <MobileBottomNav activeTab="orders" onTabChange={(t) => onNavigate(t)} />
