@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { ShopeeLogo, StatusBar, MobileBottomNav } from "./common";
 import {
   authAPI, ordersAPI, printAPI, warehouseAPI,
@@ -15,6 +15,7 @@ import {
   QrCode, X, Upload, Bluetooth, Camera, FileSpreadsheet, CheckCheck,
   Zap, Download, Smartphone
 } from "lucide-react";
+import Fuse from "fuse.js";
 import { parseShopeeExcelFile } from "../utils/shopeeExcelParser";
 import {
   connectBluetoothPrinter, isBluetoothSupported, isPrinterConnected,
@@ -22,6 +23,7 @@ import {
   playChime
 } from "../utils/bluetoothPrinter";
 import { BarcodeScannerModal } from "./BarcodeScannerModal";
+import { OrderDetailDrawer } from "./OrderDetailDrawer";
 
 /**
  * =========================================================================
@@ -1929,6 +1931,7 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [orders, setOrders] = useState([]);
   const [syncing, setSyncing] = useState(false);
+  const [drawerOrder, setDrawerOrder] = useState(null);
 
   const fetchOrders = () => {
     ordersAPI.list(filterTab, search).then(res => {
@@ -1956,7 +1959,7 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
 
   useEffect(() => {
     fetchOrders();
-  }, [filterTab, search, refreshTrigger]);
+  }, [filterTab, refreshTrigger]);
 
   const handleSyncShopee = async () => {
     setSyncing(true);
@@ -1973,6 +1976,47 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
     }
   };
 
+  const fuse = useMemo(() => {
+    return new Fuse(orders, {
+      keys: [
+        { name: "order_sn", weight: 0.4 },
+        { name: "tracking_number", weight: 0.3 },
+        { name: "customer_name", weight: 0.25 },
+        { name: "customer_phone", weight: 0.15 },
+        { name: "items.item_name", weight: 0.3 }
+      ],
+      threshold: 0.38,
+      minMatchCharLength: 2,
+      ignoreLocation: true
+    });
+  }, [orders]);
+
+  const isInstantOrder = (o) => {
+    const carrier = (o.shipping_carrier || "").toLowerCase();
+    const sn = (o.order_sn || "");
+    return carrier.includes("hỏa tốc") || carrier.includes("instant") || sn.endsWith("01VN") || sn.endsWith("03VN");
+  };
+
+  const displayedOrders = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return orders;
+
+    // Fast direct substring search for 3 digits like "701" or customer name
+    const directHits = orders.filter(o => {
+      const sn = (o.order_sn || "").toLowerCase();
+      const trk = (o.tracking_number || "").toLowerCase();
+      const name = (o.customer_name || "").toLowerCase();
+      const phone = (o.customer_phone || "").toLowerCase();
+      const itemsStr = (o.items || []).map(i => `${i.item_name} ${i.model_name}`).join(" ").toLowerCase();
+      return sn.includes(q) || trk.includes(q) || name.includes(q) || phone.includes(q) || itemsStr.includes(q);
+    });
+
+    if (directHits.length > 0) return directHits;
+
+    const results = fuse.search(q);
+    return results.map(r => r.item);
+  }, [search, orders, fuse]);
+
   const toggleSelect = (id) => {
     if (selectedOrders.includes(id)) {
       setSelectedOrders(selectedOrders.filter(x => x !== id));
@@ -1982,32 +2026,45 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
   };
 
   const selectAll = () => {
-    if (selectedOrders.length === orders.length) {
+    if (selectedOrders.length === displayedOrders.length) {
       setSelectedOrders([]);
     } else {
-      setSelectedOrders(orders.map(o => o.id));
+      setSelectedOrders(displayedOrders.map(o => o.id));
     }
   };
 
   const handleOpenDetail = (order) => {
     if (onSelectOrder) onSelectOrder(order);
-    onNavigate("order-detail", { order });
+    setDrawerOrder(order);
   };
 
   const handleBatchPrint = () => {
-    const selectedSns = orders.filter(o => selectedOrders.includes(o.id)).map(o => o.order_sn);
+    const selectedSns = displayedOrders.filter(o => selectedOrders.includes(o.id)).map(o => o.order_sn);
     if (onSelectOrderSns) onSelectOrderSns(selectedSns);
     onNavigate("batch-print", { orderSns: selectedSns });
   };
 
   return (
     <div style={{ flex: 1, minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F8FAFC" }}>
+      {/* iOS 18 Slide-up Drawer */}
+      <OrderDetailDrawer
+        order={drawerOrder}
+        isOpen={!!drawerOrder}
+        onClose={() => setDrawerOrder(null)}
+        onPrintOrder={(ord) => {
+          setDrawerOrder(null);
+          const targetSn = ord.order_sn || ord.sn;
+          if (onSelectOrderSns) onSelectOrderSns([targetSn]);
+          onNavigate("batch-print", { orderSns: [targetSn] });
+        }}
+      />
+
       {/* Pinned Top Header & Search Filters */}
       <div className="sticky-top-header">
         <StatusBar dark={true} />
         {/* Header */}
         <div style={{ padding: "6px 16px", display: "flex", alignItems: "center", justifyContent: "space-between", backgroundColor: "#FFFFFF" }}>
-          <h2 style={{ fontSize: "15px", fontWeight: "800", color: "#0F172A" }}>Đơn hàng ({orders.length})</h2>
+          <h2 style={{ fontSize: "15px", fontWeight: "800", color: "#0F172A" }}>Đơn hàng ({displayedOrders.length})</h2>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <div 
               onClick={handleSyncShopee}
@@ -2026,7 +2083,7 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
           </div>
         </div>
 
-        {/* Search Input */}
+        {/* Search Input with Fuse.js */}
         <div style={{ padding: "8px 14px", backgroundColor: "#FFFFFF" }}>
           <div style={{
             display: "flex",
@@ -2034,16 +2091,50 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
             backgroundColor: "#F1F5F9",
             borderRadius: "8px",
             padding: "0 10px",
-            height: "36px"
+            height: "36px",
+            border: search ? "1.5px solid #EE4D2D" : "1px solid #E2E8F0"
           }}>
-            <Search size={14} color="#94A3B8" />
+            <Search size={14} color={search ? "#EE4D2D" : "#94A3B8"} />
             <input 
               type="text" 
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Tìm mã đơn, tên khách, mã vận đơn..." 
+              placeholder="⚡ Gõ 3 số cuối (ví dụ 701), tên khách (Yến, Hương), tên món..." 
               style={{ border: "none", outline: "none", background: "none", width: "100%", marginLeft: "6px", fontSize: "11px", color: "#1E293B" }}
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: "2px" }}
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Quick test chips */}
+          <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "5px", flexWrap: "wrap" }}>
+            <span style={{ fontSize: "9px", color: "#64748B", fontWeight: "700" }}>⚡ Thử nhanh:</span>
+            {["701", "Yến", "Hương", "khăn sữa", "gối"].map(t => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setSearch(t)}
+                style={{
+                  backgroundColor: search === t ? "#EE4D2D" : "#F1F5F9",
+                  color: search === t ? "#FFFFFF" : "#475569",
+                  border: "none",
+                  borderRadius: "4px",
+                  padding: "2px 6px",
+                  fontSize: "9px",
+                  fontWeight: "700",
+                  cursor: "pointer"
+                }}
+              >
+                {t}
+              </button>
+            ))}
           </div>
 
           {/* Filter Pills */}
@@ -2079,101 +2170,112 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
 
       {/* Orders List */}
       <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {orders.length === 0 ? (
+        {displayedOrders.length === 0 ? (
           <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px", textAlign: "center" }}>
             <Box size={44} color="#CBD5E1" style={{ marginBottom: "12px" }} />
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "#334155" }}>Không có đơn hàng nào</div>
-            <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", maxWidth: "260px" }}>
-              Hiện tại chưa có đơn hàng nào trong mục này hoặc chưa đồng bộ từ Shopee API.
+            <div style={{ fontSize: "14px", fontWeight: "700", color: "#334155" }}>
+              {search ? `Không tìm thấy đơn nào khớp với "${search}"` : "Không có đơn hàng nào"}
             </div>
-            <button
-              onClick={handleSyncShopee}
-              disabled={syncing}
-              style={{
-                marginTop: "16px",
-                padding: "9px 18px",
-                backgroundColor: "#EE4D2D",
-                color: "#fff",
-                border: "none",
-                borderRadius: "10px",
-                fontSize: "12px",
-                fontWeight: "700",
-                cursor: syncing ? "wait" : "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                boxShadow: "0 2px 8px rgba(238, 77, 45, 0.25)"
-              }}
-            >
-              <RefreshCw size={13} className={syncing ? "spin" : ""} />
-              <span>{syncing ? "Đang đồng bộ..." : "Đồng bộ đơn hàng từ Shopee API"}</span>
-            </button>
+            <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", maxWidth: "260px" }}>
+              {search ? "Hãy thử gõ 3 số cuối hoặc tên khách hàng khác." : "Hiện tại chưa có đơn hàng nào trong mục này hoặc chưa đồng bộ từ Shopee API."}
+            </div>
           </div>
         ) : (
-          orders.map(o => (
-            <div 
-              key={o.id}
-              onClick={() => handleOpenDetail(o)}
-              style={{
-                backgroundColor: "#FFFFFF",
-                borderRadius: "10px",
-                padding: "10px 12px",
-                border: "1px solid #F1F5F9",
-                display: "flex",
-                alignItems: "flex-start",
-                gap: "8px",
-                cursor: "pointer"
-              }}
-            >
-              {/* Checkbox */}
+          displayedOrders.map(o => {
+            const isUrgent = isInstantOrder(o);
+            return (
               <div 
-                onClick={(e) => { e.stopPropagation(); toggleSelect(o.id); }}
+                key={o.id}
+                onClick={() => handleOpenDetail(o)}
+                className={isUrgent ? "spx-urgent-card" : ""}
                 style={{
-                  width: "16px",
-                  height: "16px",
-                  borderRadius: "4px",
-                  border: `1.5px solid ${selectedOrders.includes(o.id) ? "#EE4D2D" : "#CBD5E1"}`,
-                  backgroundColor: selectedOrders.includes(o.id) ? "#EE4D2D" : "transparent",
+                  backgroundColor: "#FFFFFF",
+                  borderRadius: "10px",
+                  padding: "10px 12px",
+                  border: isUrgent ? "1.5px solid #EF4444" : "1px solid #F1F5F9",
                   display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  marginTop: "2px",
-                  flexShrink: 0
+                  alignItems: "flex-start",
+                  gap: "8px",
+                  cursor: "pointer"
                 }}
               >
-                {selectedOrders.includes(o.id) && <Check size={11} color="#fff" strokeWidth={3} />}
-              </div>
+                {/* Checkbox */}
+                <div 
+                  onClick={(e) => { e.stopPropagation(); toggleSelect(o.id); }}
+                  style={{
+                    width: "16px",
+                    height: "16px",
+                    borderRadius: "4px",
+                    border: `1.5px solid ${selectedOrders.includes(o.id) ? "#EE4D2D" : "#CBD5E1"}`,
+                    backgroundColor: selectedOrders.includes(o.id) ? "#EE4D2D" : "transparent",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    marginTop: "2px",
+                    flexShrink: 0
+                  }}
+                >
+                  {selectedOrders.includes(o.id) && <Check size={11} color="#fff" strokeWidth={3} />}
+                </div>
 
-              {/* Shopee icon */}
-              <ShopeeLogo size={20} />
+                {/* Shopee icon */}
+                <ShopeeLogo size={20} />
 
-              {/* Details */}
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>#{o.order_sn}</span>
-                  <span style={{ 
-                    fontSize: "9px", 
-                    fontWeight: "700", 
-                    color: o.statusColor, 
-                    backgroundColor: o.statusBg, 
-                    padding: "1px 6px", 
-                    borderRadius: "4px" 
-                  }}>
-                    {o.status_text}
-                  </span>
-                </div>
-                <div style={{ fontSize: "10px", color: "#64748B", marginTop: "2px" }}>
-                  {o.customer_name} • {o.items_count || 1} SP • {o.created_at || "Hôm nay"}
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
-                  <span style={{ fontSize: "11px", color: "#0F172A", fontWeight: "800" }}>
-                    {Number(o.total_amount).toLocaleString("vi-VN")}đ
-                  </span>
-                  <span style={{ fontSize: "9px", color: "#64748B" }}>SPX Express</span>
+                {/* Details */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>#{o.order_sn}</span>
+                      {isUrgent ? (
+                        <span style={{
+                          fontSize: "8.5px",
+                          fontWeight: "800",
+                          backgroundColor: "#FEF2F2",
+                          color: "#DC2626",
+                          border: "1px solid #FCA5A5",
+                          padding: "1px 5px",
+                          borderRadius: "4px",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "3px"
+                        }}>
+                          <span className="spx-urgent-dot" />
+                          🔴 Hỏa Tốc
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: "8.5px", fontWeight: "700", color: "#EE4D2D", backgroundColor: "#FFF1EC", padding: "1px 5px", borderRadius: "3px" }}>
+                          🟠 SPX Nhanh
+                        </span>
+                      )}
+                    </div>
+
+                    <span style={{ 
+                      fontSize: "9px", 
+                      fontWeight: "700", 
+                      color: o.statusColor, 
+                      backgroundColor: o.statusBg, 
+                      padding: "1px 6px", 
+                      borderRadius: "4px" 
+                    }}>
+                      {o.status_text}
+                    </span>
+                  </div>
+
+                  <div style={{ fontSize: "10px", color: "#64748B", marginTop: "2px" }}>
+                    {o.customer_name} • {o.items_count || 1} SP • {o.created_at || "Hôm nay"}
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px" }}>
+                    <span style={{ fontSize: "11px", color: "#0F172A", fontWeight: "800" }}>
+                      {Number(o.total_amount).toLocaleString("vi-VN")}đ
+                    </span>
+                    <span style={{ fontSize: "9px", color: "#2563EB", fontWeight: "600" }}>
+                      Chạm để mở Drawer iOS 18 →
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 
@@ -2194,13 +2296,13 @@ export const OrdersScreen = ({ onNavigate, onSelectOrder, onSelectOrderSns, refr
             width: "15px",
             height: "15px",
             borderRadius: "4px",
-            border: `1.5px solid ${selectedOrders.length === orders.length ? "#EE4D2D" : "#CBD5E1"}`,
-            backgroundColor: selectedOrders.length === orders.length ? "#EE4D2D" : "transparent",
+            border: `1.5px solid ${selectedOrders.length === displayedOrders.length ? "#EE4D2D" : "#CBD5E1"}`,
+            backgroundColor: selectedOrders.length === displayedOrders.length ? "#EE4D2D" : "transparent",
             display: "flex",
             alignItems: "center",
             justifyContent: "center"
           }}>
-            {selectedOrders.length === orders.length && <Check size={10} color="#fff" strokeWidth={3} />}
+            {selectedOrders.length === displayedOrders.length && <Check size={10} color="#fff" strokeWidth={3} />}
           </div>
           <span>Chọn tất cả ({selectedOrders.length})</span>
         </div>
@@ -2480,10 +2582,14 @@ export const OrderDetailScreen = ({ onNavigate, selectedOrder, onToast, onOpenPr
 export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModal, onToast }) => {
   const [activeTab, setActiveTab] = useState("unprinted");
   const [itemTypeFilter, setItemTypeFilter] = useState("all"); // "all" | "single" | "multi"
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedOrders, setSelectedOrders] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [drawerOrder, setDrawerOrder] = useState(null);
+  const [activeDesktopOrder, setActiveDesktopOrder] = useState(null);
+  const [packedItemChecklist, setPackedItemChecklist] = useState({});
   const [bluetoothDevice, setBluetoothDevice] = useState(getConnectedDeviceName());
   const [bluetoothPrinting, setBluetoothPrinting] = useState(false);
   const [btProgress, setBtProgress] = useState({ current: 0, total: 0 });
@@ -2596,7 +2702,7 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
     if (onToast) onToast(`⚡ Đang truyền lệnh in trực tiếp qua Bluetooth cho ${selectedObjs.length} đơn...`);
 
     try {
-      await printBatchViaBluetooth(selectedObjs, (cur, total, ord) => {
+      await printBatchViaBluetooth(selectedObjs, (cur, total) => {
         setBtProgress({ current: cur, total });
       });
 
@@ -2614,16 +2720,73 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
     }
   };
 
-  const displayedOrders = orders.filter(o => {
-    // 1. Printed status tab
-    const matchesPrint = activeTab === "unprinted" ? !o.printed : o.printed;
-    if (!matchesPrint) return false;
+  // Fuse.js Indexing instance
+  const fuse = useMemo(() => {
+    return new Fuse(orders, {
+      keys: [
+        { name: "sn", weight: 0.4 },
+        { name: "tracking", weight: 0.3 },
+        { name: "raw.customer_name", weight: 0.25 },
+        { name: "raw.customer_phone", weight: 0.15 },
+        { name: "items.item_name", weight: 0.3 },
+        { name: "items.model_name", weight: 0.2 }
+      ],
+      threshold: 0.38,
+      minMatchCharLength: 2,
+      ignoreLocation: true
+    });
+  }, [orders]);
 
-    // 2. Item count filter
-    if (itemTypeFilter === "single") return o.is_single_item;
-    if (itemTypeFilter === "multi") return !o.is_single_item;
-    return true;
-  });
+  // Check if an order is SPX Hỏa Tốc (2H Instant Delivery)
+  const isInstantOrder = (o) => {
+    const carrier = (o.raw?.shipping_carrier || o.shipping_carrier || "").toLowerCase();
+    const sn = (o.sn || o.order_sn || "");
+    return carrier.includes("hỏa tốc") || carrier.includes("instant") || sn.endsWith("01VN") || sn.endsWith("03VN");
+  };
+
+  // Base Tab & Item Type filter
+  const baseFiltered = useMemo(() => {
+    return orders.filter(o => {
+      // 1. Printed status tab
+      const matchesPrint = activeTab === "unprinted" ? !o.printed : o.printed;
+      if (!matchesPrint) return false;
+
+      // 2. Item count filter
+      if (itemTypeFilter === "single") return o.is_single_item;
+      if (itemTypeFilter === "multi") return !o.is_single_item;
+      return true;
+    });
+  }, [orders, activeTab, itemTypeFilter]);
+
+  // Fuse.js + Instant submatch search
+  const displayedOrders = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return baseFiltered;
+
+    // Fast direct submatch (e.g. typing 3 digits like "701", "01", customer name, or item)
+    const directHits = baseFiltered.filter(o => {
+      const sn = (o.sn || "").toLowerCase();
+      const trk = (o.tracking || "").toLowerCase();
+      const name = (o.raw?.customer_name || "").toLowerCase();
+      const phone = (o.raw?.customer_phone || "").toLowerCase();
+      const itemsStr = (o.items || []).map(i => `${i.item_name} ${i.model_name}`).join(" ").toLowerCase();
+      return sn.includes(q) || trk.includes(q) || name.includes(q) || phone.includes(q) || itemsStr.includes(q);
+    });
+
+    if (directHits.length > 0) {
+      return directHits;
+    }
+
+    // Fuzzy search with Fuse.js
+    const results = fuse.search(q);
+    const matchedIds = new Set(results.map(r => r.item.id));
+    return baseFiltered.filter(o => matchedIds.has(o.id));
+  }, [searchQuery, baseFiltered, fuse]);
+
+  // Active order for 2-column Packing Station on iPad / Desktop
+  const currentPackingOrder = (activeDesktopOrder && displayedOrders.some(o => o.id === activeDesktopOrder.id))
+    ? activeDesktopOrder
+    : (displayedOrders[0] || null);
 
   const toggleSelect = (id) => {
     if (selectedOrders.includes(id)) {
@@ -2639,6 +2802,15 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
     } else {
       setSelectedOrders(displayedOrders.map(o => o.id));
     }
+  };
+
+  const toggleCheckItem = (orderSn, itemIdx) => {
+    const key = `${orderSn}_${itemIdx}`;
+    setPackedItemChecklist(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+    playChime("beep");
   };
 
   const handleStartBatchPrint = () => {
@@ -2672,6 +2844,21 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
           if (!selectedOrders.includes(matched.id)) {
             setSelectedOrders(prev => [...prev, matched.id]);
           }
+          setActiveDesktopOrder(matched);
+        }}
+        onToast={onToast}
+      />
+
+      {/* iOS 18 Slide-up Bottom Drawer */}
+      <OrderDetailDrawer
+        order={drawerOrder}
+        isOpen={!!drawerOrder}
+        onClose={() => setDrawerOrder(null)}
+        onPrintOrder={(ord) => {
+          setDrawerOrder(null);
+          const targetSn = ord.order_sn || ord.sn;
+          if (onSelectOrderSns) onSelectOrderSns([targetSn]);
+          onNavigate("printing-progress", { orderSns: [targetSn] });
         }}
         onToast={onToast}
       />
@@ -2684,7 +2871,7 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
             <button onClick={() => onNavigate("orders")} style={{ background: "none", border: "none", cursor: "pointer", padding: "2px" }}>
               <ArrowLeft size={18} color="#0F172A" />
             </button>
-            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>In hàng loạt</h2>
+            <h2 style={{ fontSize: "14px", fontWeight: "800", color: "#0F172A", marginLeft: "6px" }}>Bàn đóng gói & In SPX</h2>
           </div>
 
           {/* Top Quick Actions: AI Scanner & Bluetooth */}
@@ -2796,6 +2983,83 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
             </button>
           </div>
 
+          {/* Fuse.js Instant Search Bar */}
+          <div style={{ marginBottom: "8px" }}>
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              backgroundColor: "#F1F5F9",
+              borderRadius: "10px",
+              padding: "0 10px",
+              height: "38px",
+              border: searchQuery ? "1.5px solid #EE4D2D" : "1px solid #E2E8F0"
+            }}>
+              <Search size={14} color={searchQuery ? "#EE4D2D" : "#94A3B8"} />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="⚡ Gõ 3 số cuối (vd 701), tên khách (Yến), tên món (khăn sữa)..."
+                style={{
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  width: "100%",
+                  marginLeft: "8px",
+                  fontSize: "11.5px",
+                  fontWeight: "600",
+                  color: "#0F172A"
+                }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: "2px" }}
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Quick Test Chips for Warehouse Staff */}
+            <div style={{ display: "flex", alignItems: "center", gap: "5px", marginTop: "6px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "9.5px", color: "#64748B", fontWeight: "700" }}>⚡ Thử nhanh:</span>
+              {[
+                { label: "701 (3 số cuối)", val: "701" },
+                { label: "Yến (Tên khách)", val: "Yến" },
+                { label: "Hương", val: "Hương" },
+                { label: "khăn sữa", val: "khăn sữa" },
+                { label: "gối", val: "gối" },
+                { label: "áo cúc", val: "áo cúc" }
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setSearchQuery(chip.val)}
+                  style={{
+                    backgroundColor: searchQuery === chip.val ? "#EE4D2D" : "#FFFFFF",
+                    color: searchQuery === chip.val ? "#FFFFFF" : "#334155",
+                    border: searchQuery === chip.val ? "1px solid #EE4D2D" : "1px solid #CBD5E1",
+                    borderRadius: "4px",
+                    padding: "2px 6px",
+                    fontSize: "9px",
+                    fontWeight: "700",
+                    cursor: "pointer"
+                  }}
+                >
+                  {chip.label}
+                </button>
+              ))}
+
+              {searchQuery && (
+                <span style={{ marginLeft: "auto", fontSize: "9.5px", fontWeight: "800", color: "#059669" }}>
+                  ⚡ Fuse.js: {displayedOrders.length} kết quả (0.01s)
+                </span>
+              )}
+            </div>
+          </div>
+
           {/* Sub Filters: Single item vs Multi items */}
           <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
             <span style={{ fontSize: "10.5px", color: "#64748B", fontWeight: "600" }}>Gom đơn:</span>
@@ -2849,155 +3113,513 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
         </div>
       </div>
 
-      {/* Orders List */}
-      <div className="no-scrollbar" style={{ flex: 1, overflowY: "auto", padding: "10px 14px", display: "flex", flexDirection: "column", gap: "8px" }}>
-        {displayedOrders.length === 0 ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "40px 20px", textAlign: "center" }}>
-            <CheckCircle2 size={40} color="#10B981" style={{ marginBottom: "10px" }} />
-            <div style={{ fontSize: "14px", fontWeight: "700", color: "#334155" }}>
-              {activeTab === "unprinted" ? "Không có đơn hàng nào cần in" : "Chưa có đơn nào đã in"}
-            </div>
-            <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", maxWidth: "280px" }}>
-              {activeTab === "unprinted" 
-                ? "Bấm nút 'Nạp File Excel Shopee' ở trên để nạp 44 đơn thật từ Kênh Người Bán Shopee của bạn vào in ngay!" 
-                : "Các đơn đã in vận đơn sẽ hiển thị tại đây."}
-            </div>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              style={{
-                marginTop: "14px",
-                padding: "8px 16px",
-                backgroundColor: "#EE4D2D",
-                color: "#FFFFFF",
-                border: "none",
-                borderRadius: "8px",
-                fontSize: "12px",
-                fontWeight: "700",
-                cursor: "pointer",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px"
-              }}
-            >
-              <Upload size={14} />
-              <span>📂 Tải File Excel Đơn Thật Shopee</span>
-            </button>
-          </div>
-        ) : (
-          displayedOrders.map(o => (
-            <div key={o.id} style={{
-              backgroundColor: "#FFFFFF",
-              borderRadius: "10px",
-              padding: "10px 12px",
-              border: selectedOrders.includes(o.id) ? "1.5px solid #EE4D2D" : "1px solid #F1F5F9",
-              display: "flex",
-              alignItems: "flex-start",
-              justifyContent: "space-between",
-              gap: "8px",
-              boxShadow: selectedOrders.includes(o.id) ? "0 2px 8px rgba(238, 77, 45, 0.08)" : "none"
-            }}>
-              <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", flex: 1 }}>
-                {/* Checkbox */}
-                <div 
-                  onClick={() => toggleSelect(o.id)}
+      {/* Main Content Area: Responsive 2-Column Packing Station on iPad & PC */}
+      <div className="packing-station-grid" style={{ flex: 1, padding: "10px 14px", overflowY: "auto" }}>
+        
+        {/* LEFT COLUMN: Order List */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {displayedOrders.length === 0 ? (
+            <div style={{ backgroundColor: "#FFFFFF", borderRadius: "12px", padding: "40px 20px", textAlign: "center", border: "1px solid #E2E8F0" }}>
+              <CheckCircle2 size={40} color="#10B981" style={{ marginBottom: "10px" }} />
+              <div style={{ fontSize: "14px", fontWeight: "700", color: "#334155" }}>
+                {searchQuery ? `Không tìm thấy đơn nào khớp với "${searchQuery}"` : (activeTab === "unprinted" ? "Không có đơn hàng nào cần in" : "Chưa có đơn nào đã in")}
+              </div>
+              <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px", maxWidth: "280px", margin: "4px auto 0" }}>
+                {searchQuery ? "Hãy thử gõ 3 số cuối (ví dụ: 701) hoặc tên khách (Yến, Hương)" : "Bấm nút 'Nạp File Excel Shopee' ở trên để nạp danh sách đơn thật từ Kênh Người Bán Shopee!"}
+              </div>
+              {searchQuery ? (
+                <button
+                  onClick={() => setSearchQuery("")}
                   style={{
-                    width: "18px",
-                    height: "18px",
-                    borderRadius: "4px",
-                    backgroundColor: selectedOrders.includes(o.id) ? "#EE4D2D" : "transparent",
-                    border: `1.5px solid ${selectedOrders.includes(o.id) ? "#EE4D2D" : "#CBD5E1"}`,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    cursor: "pointer",
-                    marginTop: "2px",
-                    flexShrink: 0
+                    marginTop: "12px",
+                    padding: "6px 14px",
+                    backgroundColor: "#F1F5F9",
+                    color: "#334155",
+                    border: "none",
+                    borderRadius: "6px",
+                    fontSize: "11px",
+                    fontWeight: "700",
+                    cursor: "pointer"
                   }}
                 >
-                  {selectedOrders.includes(o.id) && <Check size={12} color="#fff" strokeWidth={3} />}
-                </div>
+                  Xóa từ khóa tìm kiếm
+                </button>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    marginTop: "14px",
+                    padding: "8px 16px",
+                    backgroundColor: "#EE4D2D",
+                    color: "#FFFFFF",
+                    border: "none",
+                    borderRadius: "8px",
+                    fontSize: "12px",
+                    fontWeight: "700",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "6px"
+                  }}
+                >
+                  <Upload size={14} />
+                  <span>📂 Tải File Excel Đơn Thật Shopee</span>
+                </button>
+              )}
+            </div>
+          ) : (
+            displayedOrders.map(o => {
+              const isUrgent = isInstantOrder(o);
+              const isSelected = selectedOrders.includes(o.id);
+              const isCurrentDesktop = currentPackingOrder?.id === o.id;
 
-                {/* Product Thumbnail / Icon */}
-                <div style={{
-                  width: "44px",
-                  height: "44px",
-                  borderRadius: "6px",
-                  backgroundColor: "#FFF1EC",
-                  border: "1px solid #FFE4DB",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0,
-                  overflow: "hidden"
-                }}>
-                  {o.raw?.image_url ? (
-                    <img src={o.raw.image_url} alt="NOUS" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                  ) : (
-                    <div style={{ textAlign: "center" }}>
-                      <span style={{ fontSize: "16px" }}>👶</span>
-                      <div style={{ fontSize: "7px", fontWeight: "800", color: "#EE4D2D" }}>NOUS</div>
+              return (
+                <div 
+                  key={o.id} 
+                  onClick={() => {
+                    setActiveDesktopOrder(o);
+                    // On mobile, also trigger iOS 18 bottom drawer
+                    if (window.innerWidth < 840) {
+                      setDrawerOrder(o.raw || o);
+                    }
+                  }}
+                  className={isUrgent ? "spx-urgent-card" : ""}
+                  style={{
+                    backgroundColor: "#FFFFFF",
+                    borderRadius: "10px",
+                    padding: "10px 12px",
+                    border: isCurrentDesktop 
+                      ? "2px solid #EE4D2D" 
+                      : (isSelected ? "1.5px solid #EE4D2D" : (isUrgent ? "1.5px solid #EF4444" : "1px solid #E2E8F0")),
+                    display: "flex",
+                    alignItems: "flex-start",
+                    justifyContent: "space-between",
+                    gap: "8px",
+                    cursor: "pointer",
+                    boxShadow: isCurrentDesktop 
+                      ? "0 4px 12px rgba(238, 77, 45, 0.18)" 
+                      : (isSelected ? "0 2px 8px rgba(238, 77, 45, 0.08)" : "0 1px 3px rgba(0,0,0,0.02)"),
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px", flex: 1, minWidth: 0 }}>
+                    {/* Checkbox for batch printing */}
+                    <div 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleSelect(o.id);
+                      }}
+                      style={{
+                        width: "18px",
+                        height: "18px",
+                        borderRadius: "4px",
+                        backgroundColor: isSelected ? "#EE4D2D" : "transparent",
+                        border: `1.5px solid ${isSelected ? "#EE4D2D" : "#CBD5E1"}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                        marginTop: "2px",
+                        flexShrink: 0
+                      }}
+                    >
+                      {isSelected && <Check size={12} color="#fff" strokeWidth={3} />}
                     </div>
-                  )}
-                </div>
 
-                {/* Order Information & Items */}
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                    <span style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>#{o.sn}</span>
-                    <span style={{ fontSize: "9px", color: "#EE4D2D", fontWeight: "700", backgroundColor: "#FFF1EC", padding: "1px 5px", borderRadius: "3px" }}>
-                      {o.tracking || "SPX Express"}
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: "10px", color: "#475569", marginTop: "2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {o.info}
-                  </div>
-
-                  {/* Items Preview List */}
-                  {o.items && o.items.length > 0 && (
-                    <div style={{ marginTop: "4px", backgroundColor: "#F8FAFC", borderRadius: "4px", padding: "4px 6px" }}>
-                      {o.items.slice(0, 2).map((it, idx) => (
-                        <div key={idx} style={{ fontSize: "9.5px", color: "#334155", lineHeight: "1.3" }}>
-                          • <strong>{it.quantity}x</strong> {it.item_name} <span style={{ color: "#64748B" }}>({it.model_name || 'Tiêu chuẩn'})</span>
-                        </div>
-                      ))}
-                      {o.items.length > 2 && (
-                        <div style={{ fontSize: "9px", color: "#94A3B8" }}>
-                          + {o.items.length - 2} sản phẩm khác...
+                    {/* Product Thumbnail / NOUS Badge */}
+                    <div style={{
+                      width: "44px",
+                      height: "44px",
+                      borderRadius: "6px",
+                      backgroundColor: "#FFF1EC",
+                      border: "1px solid #FFE4DB",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      overflow: "hidden"
+                    }}>
+                      {o.raw?.image_url ? (
+                        <img src={o.raw.image_url} alt="NOUS" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      ) : (
+                        <div style={{ textAlign: "center" }}>
+                          <span style={{ fontSize: "16px" }}>👶</span>
+                          <div style={{ fontSize: "7px", fontWeight: "800", color: "#EE4D2D" }}>NOUS</div>
                         </div>
                       )}
                     </div>
+
+                    {/* Order Information & Carrier Badges */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#0F172A" }}>#{o.sn}</span>
+
+                        {/* SPX Carrier Badges */}
+                        {isUrgent ? (
+                          <span style={{
+                            fontSize: "9px",
+                            fontWeight: "800",
+                            backgroundColor: "#FEF2F2",
+                            color: "#DC2626",
+                            border: "1px solid #FCA5A5",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                          }}>
+                            <span className="spx-urgent-dot" />
+                            🔴 SPX Hỏa Tốc (2H - Gói gấp)
+                          </span>
+                        ) : (
+                          <span style={{
+                            fontSize: "9px",
+                            fontWeight: "700",
+                            backgroundColor: "#FFF1EC",
+                            color: "#EE4D2D",
+                            padding: "2px 6px",
+                            borderRadius: "4px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "3px"
+                          }}>
+                            🟠 {o.raw?.shipping_carrier || "SPX Nhanh (Tiêu chuẩn)"}
+                          </span>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: "10.5px", color: "#334155", fontWeight: "600", marginTop: "3px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {o.info}
+                      </div>
+
+                      {/* Items Preview List */}
+                      {o.items && o.items.length > 0 && (
+                        <div style={{ marginTop: "4px", backgroundColor: "#F8FAFC", borderRadius: "6px", padding: "4px 8px", border: "1px solid #F1F5F9" }}>
+                          {o.items.slice(0, 2).map((it, idx) => (
+                            <div key={idx} style={{ fontSize: "9.5px", color: "#334155", lineHeight: "1.3" }}>
+                              • <strong>{it.quantity}x</strong> {it.item_name} <span style={{ color: "#64748B" }}>({it.model_name || 'Tiêu chuẩn'})</span>
+                            </div>
+                          ))}
+                          {o.items.length > 2 && (
+                            <div style={{ fontSize: "9px", color: "#94A3B8" }}>
+                              + {o.items.length - 2} sản phẩm khác...
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Tap to inspect note on mobile */}
+                      <div className="packing-station-mobile-only" style={{ marginTop: "4px", fontSize: "9px", color: "#2563EB", fontWeight: "700" }}>
+                        Chạm để mở ngăn kéo iOS 18 xem chi tiết & in nhanh →
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Badges on the right */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px", flexShrink: 0 }}>
+                    {o.printed ? (
+                      <span style={{ 
+                        fontSize: "9px", 
+                        fontWeight: "800", 
+                        color: "#059669", 
+                        backgroundColor: "#ECFDF5", 
+                        border: "1px solid #A7F3D0",
+                        padding: "2px 6px", 
+                        borderRadius: "4px",
+                        whiteSpace: "nowrap"
+                      }}>
+                        🟢 Đã in tem SPX
+                      </span>
+                    ) : (
+                      <span style={{ 
+                        fontSize: "9px", 
+                        fontWeight: "700", 
+                        color: "#D97706", 
+                        backgroundColor: "#FFFBEB", 
+                        padding: "2px 6px", 
+                        borderRadius: "4px",
+                        whiteSpace: "nowrap"
+                      }}>
+                        🟡 Chờ in tem
+                      </span>
+                    )}
+
+                    <span style={{
+                      fontSize: "8.5px",
+                      fontWeight: "700",
+                      color: o.is_single_item ? "#059669" : "#7C3AED",
+                      backgroundColor: o.is_single_item ? "#D1FAE5" : "#EDE9FE",
+                      padding: "2px 5px",
+                      borderRadius: "3px"
+                    }}>
+                      {o.is_single_item ? "1 Món ⚡" : `${o.raw?.items_count || o.items?.length || 2} Món`}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: Interactive Packing Station Panel for iPad / Desktop */}
+        <div className="packing-station-desktop-panel" style={{
+          position: "sticky",
+          top: "10px",
+          backgroundColor: "#FFFFFF",
+          borderRadius: "14px",
+          border: "1.5px solid #E2E8F0",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+          padding: "16px",
+          display: "flex",
+          flexDirection: "column",
+          gap: "14px"
+        }}>
+          {currentPackingOrder ? (
+            <>
+              {/* Station Header */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "1px solid #F1F5F9", paddingBottom: "12px" }}>
+                <div>
+                  <div style={{ fontSize: "11px", fontWeight: "800", color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                    📦 BÀN ĐÓNG GÓI SPX EXPRESS (PACKING STATION)
+                  </div>
+                  <div style={{ fontSize: "16px", fontWeight: "900", color: "#0F172A", marginTop: "2px" }}>
+                    #{currentPackingOrder.sn}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  {isInstantOrder(currentPackingOrder) ? (
+                    <span style={{
+                      fontSize: "10px",
+                      fontWeight: "800",
+                      backgroundColor: "#FEF2F2",
+                      color: "#DC2626",
+                      border: "1px solid #FCA5A5",
+                      padding: "3px 8px",
+                      borderRadius: "6px",
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px"
+                    }}>
+                      <span className="spx-urgent-dot" />
+                      🔴 HỎA TỐC 2H (ƯU TIÊN)
+                    </span>
+                  ) : (
+                    <span style={{
+                      fontSize: "10px",
+                      fontWeight: "800",
+                      backgroundColor: "#FFF1EC",
+                      color: "#EE4D2D",
+                      padding: "3px 8px",
+                      borderRadius: "6px"
+                    }}>
+                      🟠 SPX TIÊU CHUẨN
+                    </span>
                   )}
                 </div>
               </div>
 
-              {/* Status and Single item Badges */}
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "4px" }}>
-                <span style={{ 
-                  fontSize: "9px", 
-                  fontWeight: "700", 
-                  color: o.printed ? "#10B981" : "#F97316", 
-                  backgroundColor: o.printed ? "#ECFDF5" : "#FFF1EC", 
-                  padding: "2px 6px", 
-                  borderRadius: "4px" 
-                }}>
-                  {o.printed ? "Đã in" : "Chờ in"}
-                </span>
+              {/* Recipient Details Box */}
+              <div style={{ backgroundColor: "#F8FAFC", borderRadius: "10px", padding: "10px 12px", border: "1px solid #E2E8F0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div style={{ fontSize: "13px", fontWeight: "800", color: "#0F172A" }}>
+                    👤 {currentPackingOrder.raw?.customer_name || "Khách Hàng Shopee"}
+                  </div>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "#2563EB" }}>
+                    📱 {currentPackingOrder.raw?.customer_phone || "09********"}
+                  </span>
+                </div>
+                <div style={{ fontSize: "11px", color: "#475569", marginTop: "4px", lineHeight: "1.4" }}>
+                  📍 {currentPackingOrder.raw?.customer_address || "Kho hàng Shopee SPX Express, Việt Nam"}
+                </div>
+                <div style={{ fontSize: "11px", fontWeight: "700", color: "#EE4D2D", marginTop: "4px" }}>
+                  Mã vận đơn: {currentPackingOrder.tracking || `SPXVN${(currentPackingOrder.sn || '').slice(-8)}`}
+                </div>
+              </div>
 
-                <span style={{
-                  fontSize: "8.5px",
-                  fontWeight: "700",
-                  color: o.is_single_item ? "#059669" : "#7C3AED",
-                  backgroundColor: o.is_single_item ? "#D1FAE5" : "#EDE9FE",
-                  padding: "2px 5px",
-                  borderRadius: "3px"
-                }}>
-                  {o.is_single_item ? "1 Món ⚡" : `${o.raw?.items_count || o.items?.length || 2} Món`}
-                </span>
+              {/* Interactive Packing Checklist */}
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "12px", fontWeight: "800", color: "#0F172A" }}>
+                    Danh sách sản phẩm nhặt hàng ({currentPackingOrder.items?.reduce((s, it) => s + (it.quantity || 1), 0) || 1} món):
+                  </span>
+                  <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#EE4D2D" }}>
+                    {Number(currentPackingOrder.raw?.total_amount || 168000).toLocaleString("vi-VN")}đ
+                  </span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "240px", overflowY: "auto" }}>
+                  {(currentPackingOrder.items || [
+                    { item_name: "NOUS Baby chính hãng", model_name: "Tiêu chuẩn", quantity: 1 }
+                  ]).map((item, idx) => {
+                    const checkKey = `${currentPackingOrder.sn}_${idx}`;
+                    const isChecked = !!packedItemChecklist[checkKey];
+
+                    return (
+                      <div
+                        key={idx}
+                        onClick={() => toggleCheckItem(currentPackingOrder.sn, idx)}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          padding: "8px 10px",
+                          borderRadius: "8px",
+                          backgroundColor: isChecked ? "#ECFDF5" : "#F8FAFC",
+                          border: isChecked ? "1.5px solid #10B981" : "1px solid #E2E8F0",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease"
+                        }}
+                      >
+                        <div style={{
+                          width: "20px",
+                          height: "20px",
+                          borderRadius: "4px",
+                          backgroundColor: isChecked ? "#10B981" : "#FFFFFF",
+                          border: `1.5px solid ${isChecked ? "#10B981" : "#CBD5E1"}`,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0
+                        }}>
+                          {isChecked && <Check size={13} color="#FFFFFF" strokeWidth={3} />}
+                        </div>
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontSize: "12px",
+                            fontWeight: "700",
+                            color: isChecked ? "#065F46" : "#0F172A",
+                            textDecoration: isChecked ? "line-through" : "none"
+                          }}>
+                            {item.item_name}
+                          </div>
+                          <div style={{ fontSize: "10.5px", color: isChecked ? "#047857" : "#64748B", marginTop: "2px" }}>
+                            Phân loại: <strong>{item.model_name || "Tiêu chuẩn"}</strong>
+                          </div>
+                        </div>
+
+                        <div style={{
+                          backgroundColor: isChecked ? "#10B981" : "#EE4D2D",
+                          color: "#FFFFFF",
+                          fontSize: "11px",
+                          fontWeight: "800",
+                          padding: "3px 8px",
+                          borderRadius: "6px"
+                        }}>
+                          x{item.quantity || 1}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Giant Touch Buttons for iPad Warehouse Staff */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "6px" }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    playChime("success");
+                    if (onSelectOrderSns) onSelectOrderSns([currentPackingOrder.sn]);
+                    onNavigate("printing-progress", { orderSns: [currentPackingOrder.sn] });
+                  }}
+                  style={{
+                    width: "100%",
+                    height: "50px",
+                    backgroundColor: "#EE4D2D",
+                    color: "#FFFFFF",
+                    borderRadius: "12px",
+                    fontSize: "14px",
+                    fontWeight: "800",
+                    border: "none",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "8px",
+                    boxShadow: "0 4px 16px rgba(238, 77, 45, 0.35)",
+                    transition: "transform 0.15s ease"
+                  }}
+                >
+                  <Printer size={18} />
+                  <span>⚡ IN TEM NGAY (1-CHẠM) - A6 SPX</span>
+                </button>
+
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (!isPrinterConnected()) {
+                        await handleConnectBluetooth();
+                      }
+                      if (!isPrinterConnected()) return;
+                      try {
+                        setBluetoothPrinting(true);
+                        await printBatchViaBluetooth([currentPackingOrder.raw || currentPackingOrder], () => {});
+                        const updated = orders.map(o => o.sn === currentPackingOrder.sn ? { ...o, printed: true } : o);
+                        setOrders(updated);
+                        playChime("success");
+                        if (onToast) onToast(`🟢 Đã in tem SPX cho đơn #${currentPackingOrder.sn} qua Bluetooth!`);
+                      } catch (e) {
+                        if (onToast) onToast(`Lỗi: ${e.message}`);
+                      } finally {
+                        setBluetoothPrinting(false);
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      height: "40px",
+                      backgroundColor: bluetoothDevice ? "#059669" : "#2563EB",
+                      color: "#FFFFFF",
+                      borderRadius: "10px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "6px"
+                    }}
+                  >
+                    <Zap size={15} />
+                    <span>In Bluetooth (0s)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDrawerOrder(currentPackingOrder.raw || currentPackingOrder)}
+                    style={{
+                      height: "40px",
+                      padding: "0 14px",
+                      backgroundColor: "#F1F5F9",
+                      color: "#334155",
+                      borderRadius: "10px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      border: "none",
+                      cursor: "pointer"
+                    }}
+                  >
+                    Mở Drawer
+                  </button>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: "40px 10px", color: "#94A3B8" }}>
+              <Package size={40} color="#CBD5E1" style={{ marginBottom: "10px" }} />
+              <div style={{ fontSize: "13px", fontWeight: "700", color: "#475569" }}>
+                Chưa chọn đơn hàng nào
+              </div>
+              <div style={{ fontSize: "11px", color: "#94A3B8", marginTop: "4px" }}>
+                Bấm vào một đơn hàng bất kỳ bên trái để kiểm tra & in nhanh
               </div>
             </div>
-          ))
-        )}
+          )}
+        </div>
+
       </div>
 
       {/* Bluetooth Printing Progress Bar Modal */}
@@ -3034,7 +3656,7 @@ export const BatchPrintScreen = ({ onNavigate, onSelectOrderSns, onOpenPrintModa
           <div style={{ fontSize: "11px", fontWeight: "800", color: "#0F172A" }}>
             Đã chọn {displayedOrders.filter(o => selectedOrders.includes(o.id)).length} / {displayedOrders.length} đơn
           </div>
-          <div style={{ fontSize: "9px", color: "#94A3B8" }}>Khổ in A6 Thermal (100x150mm)</div>
+          <div style={{ fontSize: "9px", color: "#94A3B8" }}>Khổ in A6 Thermal (100x150mm) SPX</div>
         </div>
 
         <div style={{ display: "flex", gap: "6px" }}>
