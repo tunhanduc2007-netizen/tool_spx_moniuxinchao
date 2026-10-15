@@ -78,10 +78,14 @@ export default function App() {
       return;
     }
 
-    // 2. Normal session check
+    // 2. Normal session check (auto-enter Dashboard if session exists)
     authAPI.ensureAuth().then((u) => {
       if (u) {
         setActiveUser(u);
+        const hash = window.location.hash.replace("#/", "").replace("#", "").trim();
+        if (!hash || hash === "login" || hash === "welcome") {
+          setCurrentScreen("dashboard");
+        }
       } else {
         setActiveUser(null);
       }

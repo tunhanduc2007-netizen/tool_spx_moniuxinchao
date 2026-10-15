@@ -10,6 +10,7 @@ export const setToken = (t) => localStorage.setItem("shopee_token", t);
 export const removeToken = () => {
   localStorage.removeItem("shopee_token");
   localStorage.removeItem("spx_current_user");
+  localStorage.removeItem("spx_connected_shop");
 };
 
 function getLocalStore(key, defaultVal) {
@@ -1265,12 +1266,14 @@ export const authAPI = {
   },
   ensureAuth: async () => {
     let token = getToken();
+    let savedUser = getLocalStore("current_user", null);
     if (token) {
+      if (savedUser) return savedUser;
       try {
         const me = await request("/api/auth/me");
         if (me && me.user) return me.user;
       } catch (e) {
-        removeToken();
+        if (savedUser) return savedUser;
       }
     }
     return null;

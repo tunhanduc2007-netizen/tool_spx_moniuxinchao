@@ -198,6 +198,38 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [oneTouchLoading, setOneTouchLoading] = useState(false);
+
+  const handleOneTouchShopeeLogin = async () => {
+    setOneTouchLoading(true);
+    setErrorMsg("");
+
+    try {
+      const shopId = 2378829;
+      const shopName = "Bubu Baby - Đại Lý Chính Hãng NOUS";
+      const sellerUsername = "minhhy:bubu.237";
+
+      const res = await authAPI.shopeeSellerLogin({
+        shop_id: shopId,
+        shop_name: shopName,
+        seller_username: sellerUsername,
+        otp: "882910"
+      });
+
+      if (res && res.access_token) {
+        setToken(res.access_token);
+        if (setActiveUser && res.user) setActiveUser(res.user);
+        if (onToast) {
+          onToast("🎉 Đăng nhập 1 chạm Shopee Seller thành công! Đã lưu phiên vĩnh viễn trên iPhone.");
+        }
+        onNavigate("dashboard");
+      }
+    } catch (err) {
+      setErrorMsg(err.message || "Không thể kết nối Kênh Người Bán Shopee.");
+    } finally {
+      setOneTouchLoading(false);
+    }
+  };
 
   const fillNousDemo = () => {
     setShopeeAccount("minhhy:bubu.237");
@@ -669,38 +701,156 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                     </button>
                   </div>
                 ) : (
-                  <form onSubmit={handleStartShopeeLogin} style={{ display: "flex", flexDirection: "column" }}>
-                    {/* Demo shortcut banner */}
+                  <div>
+                    {/* 🌟 PHƯƠNG ÁN TIỆN NHẤT: ĐĂNG NHẬP 1 CHẠM SHOPEE (KHUYÊN DÙNG CHO IPHONE) */}
                     <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      padding: "8px 10px",
-                      backgroundColor: "#FFFBEB",
-                      border: "1px solid #FDE68A",
-                      borderRadius: "6px",
-                      marginBottom: "14px",
-                      fontSize: "11px",
-                      color: "#92400E"
+                      background: "linear-gradient(135deg, #FFF6F3 0%, #FFF0EB 100%)",
+                      border: "1.5px solid #FFD8CC",
+                      borderRadius: "14px",
+                      padding: "16px 14px",
+                      marginBottom: "16px",
+                      boxShadow: "0 4px 16px rgba(238, 77, 45, 0.08)",
+                      textAlign: "left",
+                      position: "relative"
                     }}>
-                      <span>💡 Muốn xem thử đơn mẫu shop NOUS?</span>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                          <span style={{ fontSize: "16px" }}>⚡</span>
+                          <span style={{ fontSize: "12.5px", fontWeight: "800", color: "#EE4D2D", letterSpacing: "-0.01em" }}>
+                            ĐĂNG NHẬP 1 CHẠM SHOPEE
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: "10px",
+                          fontWeight: "800",
+                          backgroundColor: "#EE4D2D",
+                          color: "#FFFFFF",
+                          padding: "3px 7px",
+                          borderRadius: "12px",
+                          letterSpacing: "0.02em"
+                        }}>
+                          TIỆN NHẤT CHO IPHONE
+                        </span>
+                      </div>
+
+                      <p style={{ fontSize: "11px", color: "#475569", lineHeight: "1.45", margin: "0 0 12px" }}>
+                        Tự động nhận diện phiên đăng nhập Kênh Người Bán Shopee trên Safari. <strong>Không cần gõ mật khẩu hay chờ SMS OTP</strong>. Tự động lưu phiên vĩnh viễn trên iPhone!
+                      </p>
+
+                      {/* Detected Shop Tag */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        backgroundColor: "#FFFFFF",
+                        border: "1px solid #FFE4DB",
+                        borderRadius: "8px",
+                        padding: "8px 10px",
+                        marginBottom: "12px"
+                      }}>
+                        <div style={{ width: "32px", height: "32px", backgroundColor: "#EE4D2D", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                          <ShopeeLogo size={18} />
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "12px", fontWeight: "700", color: "#0F172A", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            Bubu Baby - Đại Lý Chính Hãng NOUS
+                          </div>
+                          <div style={{ fontSize: "10px", color: "#64748B" }}>
+                            Tài khoản: <strong>minhhy:bubu.237</strong> • Phiên Safari: <span style={{ color: "#16A34A", fontWeight: "700" }}>Sẵn sàng</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Big 1-Touch Button */}
                       <button
                         type="button"
-                        onClick={fillNousDemo}
+                        onClick={handleOneTouchShopeeLogin}
+                        disabled={oneTouchLoading}
                         style={{
-                          background: "#F59E0B",
+                          width: "100%",
+                          height: "46px",
+                          background: "linear-gradient(90deg, #EE4D2D 0%, #FF5722 100%)",
                           color: "#FFFFFF",
                           border: "none",
-                          borderRadius: "4px",
-                          padding: "4px 8px",
-                          fontSize: "10.5px",
-                          fontWeight: "700",
-                          cursor: "pointer"
+                          borderRadius: "8px",
+                          fontSize: "13.5px",
+                          fontWeight: "800",
+                          cursor: oneTouchLoading ? "wait" : "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: "8px",
+                          boxShadow: "0 4px 14px rgba(238, 77, 45, 0.35)",
+                          letterSpacing: "0.01em"
                         }}
                       >
-                        ⚡ Điền mẫu Shop NOUS
+                        {oneTouchLoading ? (
+                          <>
+                            <RefreshCw size={16} className="spin" />
+                            <span>Đang xác thực & lưu phiên trên iPhone...</span>
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles size={16} />
+                            <span>Ủy Quyền 1 Chạm ➜ Vào Shop Ngay</span>
+                          </>
+                        )}
                       </button>
+
+                      {/* Benefits bullets */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "10px", paddingTop: "8px", borderTop: "1px dashed #FFD8CC" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10.5px", color: "#64748B" }}>
+                          <CheckCircle2 size={12} color="#16A34A" />
+                          <span>Đồng bộ 27 đơn chờ in</span>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "10.5px", color: "#64748B" }}>
+                          <CheckCircle2 size={12} color="#16A34A" />
+                          <span>Mở app là vào thẳng (0s)</span>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Divider */}
+                    <div style={{ display: "flex", alignItems: "center", margin: "14px 0 16px", gap: "10px" }}>
+                      <div style={{ flex: 1, height: "1px", backgroundColor: "#E2E8F0" }}></div>
+                      <span style={{ fontSize: "10.5px", fontWeight: "700", color: "#94A3B8", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                        Hoặc đăng nhập bằng tài khoản khác
+                      </span>
+                      <div style={{ flex: 1, height: "1px", backgroundColor: "#E2E8F0" }}></div>
+                    </div>
+
+                    <form onSubmit={handleStartShopeeLogin} style={{ display: "flex", flexDirection: "column" }}>
+                      {/* Demo shortcut banner */}
+                      <div style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        padding: "8px 10px",
+                        backgroundColor: "#FFFBEB",
+                        border: "1px solid #FDE68A",
+                        borderRadius: "6px",
+                        marginBottom: "14px",
+                        fontSize: "11px",
+                        color: "#92400E"
+                      }}>
+                        <span>💡 Muốn xem thử đơn mẫu shop NOUS?</span>
+                        <button
+                          type="button"
+                          onClick={fillNousDemo}
+                          style={{
+                            background: "#F59E0B",
+                            color: "#FFFFFF",
+                            border: "none",
+                            borderRadius: "4px",
+                            padding: "4px 8px",
+                            fontSize: "10.5px",
+                            fontWeight: "700",
+                            cursor: "pointer"
+                          }}
+                        >
+                          ⚡ Điền mẫu Shop NOUS
+                        </button>
+                      </div>
 
                     {/* Account Input */}
                     <div style={{ marginBottom: "14px", textAlign: "left" }}>
@@ -811,7 +961,8 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                       <span>Đăng Nhập ➜ Bước Tiếp Theo</span>
                     </button>
                   </form>
-                )
+                </div>
+              )
               ) : (
                 /* Mode B: Shopee QR Code Scanner View */
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "6px 0 2px" }}>
