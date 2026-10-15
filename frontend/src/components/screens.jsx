@@ -814,7 +814,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
               </div>
 
               <a
-                href="https://account.seller.shopee.com/signin/oauth/identifier?account_type=2&client_id=e8f4e19db737102a4067c357b86ab805&lang=vi&login_types=%5B2,3,4%5D&max_auth_age=600&redirect_uri=https%3A%2F%2Fbanhang.shopee.vn%2Fapi%2Fselleraccount%2Fsubaccount_oauth_callback%2F&region=VN&response_type=code&scope=profile&sign=da07e38a8fd71024eba96cb1aeac4b58&state=eyJmZV9yZWRpcmVjdF9yZWdpb24iOiJWTiIsImZlX3JlZGlyZWN0X3VybCI6Ii8iLCJuZXh0IjoiLyIsIm5vbmNlIjoibHkxY2l2MGcifQ%3D%3D&support_qr_code_login=true&timestamp=1792035941&title=sla_title_main_sub_account_login"
+                href="https://banhang.shopee.vn/"
                 target="_blank"
                 rel="noreferrer"
                 style={{
@@ -826,7 +826,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                   gap: "4px"
                 }}
               >
-                <span>Mở trang đăng nhập Kênh Người Bán gốc trên Shopee ↗</span>
+                <span>Mở trang đăng nhập Kênh Người Bán gốc trên Shopee (banhang.shopee.vn) ↗</span>
               </a>
             </div>
           </div>
