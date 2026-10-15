@@ -53,6 +53,29 @@ export default function App() {
 
   // Auto authenticate and ensure user session
   useEffect(() => {
+    // 1. Check if returning from Shopee OAuth redirect with code & shop_id
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.includes("?") ? window.location.hash.split("?")[1] : "");
+    const code = urlParams.get("code") || hashParams.get("code");
+    const shopId = urlParams.get("shop_id") || hashParams.get("shop_id");
+
+    if (code && shopId) {
+      triggerToast("Đang xác thực tài khoản Shopee Seller & đồng bộ đơn hàng...", "info");
+      authAPI.handleOAuthCallback(code, shopId).then((res) => {
+        if (res && res.user) {
+          setActiveUser(res.user);
+          // Remove query params from address bar cleanly
+          window.history.replaceState({}, document.title, window.location.pathname + "#/dashboard");
+          handleNavigate("dashboard");
+          triggerToast(`🎉 Đăng nhập Kênh Người Bán Shopee #${shopId} thành công! Đã đồng bộ 100% đơn hàng.`);
+        }
+      }).catch((err) => {
+        triggerToast("Lỗi xác thực Shopee: " + err.message, "error");
+      });
+      return;
+    }
+
+    // 2. Normal session check
     authAPI.ensureAuth().then((u) => {
       if (u) {
         setActiveUser(u);

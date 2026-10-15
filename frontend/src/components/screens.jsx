@@ -224,10 +224,11 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
     setLoading(true);
     setErrorMsg("");
     try {
-      const res = await authAPI.getShopeeOAuthUrl();
+      const currentOrigin = typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8000";
+      const res = await authAPI.getShopeeOAuthUrl(currentOrigin);
       if (res && res.auth_url) {
-        if (onToast) onToast("Đang mở trang ủy quyền Shopee Open Platform...");
-        window.open(res.auth_url, "_blank");
+        if (onToast) onToast("Đang chuyển sang trang Kênh Người Bán Shopee để xác thực...");
+        window.location.href = res.auth_url;
       }
     } catch (err) {
       setErrorMsg(err.message || "Lỗi tạo đường dẫn ủy quyền Shopee.");
@@ -364,202 +365,230 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
 
         {/* TAB 1: SHOPEE SELLER LOGIN */}
         {activeTab === "shopee" && (
-          <form onSubmit={handleShopeeLogin} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+            {/* Primary Action: Official Shopee Seller SSO Login */}
             <div style={{
               backgroundColor: "#FFF7F4",
-              border: "1px solid #FFE4DB",
-              borderRadius: "8px",
-              padding: "8px 12px",
-              fontSize: "11px",
-              color: "#C2410C",
-              lineHeight: 1.4
+              border: "1.5px solid #FFD8CC",
+              borderRadius: "12px",
+              padding: "14px 12px",
+              textAlign: "center",
+              boxShadow: "0 2px 8px rgba(238, 77, 45, 0.08)"
             }}>
-              💡 <strong>Kết nối Kênh Người Bán:</strong> Nhập thông tin gian hàng Shopee của bạn để hệ thống tự động kết nối và lấy dữ liệu API (đơn hàng, mã vận đơn, tồn kho).
-            </div>
-
-            {/* Shop ID */}
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                Mã Shop ID (Shopee Seller Shop ID)
-              </label>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid #E2E8F0",
-                borderRadius: "10px",
-                padding: "0 12px",
-                height: "44px",
-                backgroundColor: "#FFFFFF"
-              }}>
-                <Store size={16} color="#94A3B8" />
-                <input 
-                  type="number" 
-                  value={shopId}
-                  onChange={(e) => setShopId(e.target.value)}
-                  placeholder="Ví dụ: 8829104" 
-                  required
-                  style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
-                />
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", marginBottom: "4px" }}>
+                <ShopeeLogo size={18} />
+                <span style={{ fontSize: "13px", fontWeight: "800", color: "#C2410C" }}>
+                  ĐĂNG NHẬP BẰNG TÀI KHOẢN SHOPEE SELLER
+                </span>
               </div>
-            </div>
+              <p style={{ fontSize: "11px", color: "#64748B", margin: "0 0 12px", lineHeight: "1.4" }}>
+                Bấm nút bên dưới để chuyển sang trang Kênh Người Bán Shopee chính thức, đăng nhập tài khoản và ủy quyền đồng bộ 100% toàn bộ đơn hàng thực tế về app.
+              </p>
 
-            {/* Shop Name */}
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                Tên Gian Hàng (Shop Name)
-              </label>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid #E2E8F0",
-                borderRadius: "10px",
-                padding: "0 12px",
-                height: "44px",
-                backgroundColor: "#FFFFFF"
-              }}>
-                <Box size={16} color="#94A3B8" />
-                <input 
-                  type="text" 
-                  value={shopName}
-                  onChange={(e) => setShopName(e.target.value)}
-                  placeholder="Ví dụ: SPX Flagship Store VN" 
-                  required
-                  style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
-                />
-              </div>
-            </div>
-
-            {/* Seller Username */}
-            <div>
-              <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
-                Tên Đăng Nhập Shopee Seller (Username)
-              </label>
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid #E2E8F0",
-                borderRadius: "10px",
-                padding: "0 12px",
-                height: "44px",
-                backgroundColor: "#FFFFFF"
-              }}>
-                <User size={16} color="#94A3B8" />
-                <input 
-                  type="text" 
-                  value={sellerUsername}
-                  onChange={(e) => setSellerUsername(e.target.value)}
-                  placeholder="Ví dụ: shopee_seller_vn" 
-                  style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
-                />
-              </div>
-            </div>
-
-            {/* Advanced Partner Key Toggle */}
-            <div style={{ marginTop: "2px" }}>
-              <button
-                type="button"
-                onClick={() => setShowAdvanced(!showAdvanced)}
-                style={{
-                  background: "none",
-                  border: "none",
-                  padding: "0",
-                  color: "#64748B",
-                  fontSize: "11px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "4px"
-                }}
-              >
-                <span>⚙️ Cấu hình Partner ID & Key API nâng cao</span>
-                <ChevronDown size={14} style={{ transform: showAdvanced ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
-              </button>
-
-              {showAdvanced && (
-                <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px", padding: "10px", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
-                  <div>
-                    <label style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }}>Shopee Partner ID</label>
-                    <input 
-                      type="number"
-                      value={partnerId}
-                      onChange={(e) => setPartnerId(e.target.value)}
-                      placeholder="Mặc định: 1008291"
-                      style={{ width: "100%", height: "32px", fontSize: "11px", borderRadius: "6px", border: "1px solid #CBD5E1", padding: "0 8px", marginTop: "3px" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }}>Shopee Partner Key (Secret)</label>
-                    <input 
-                      type="password"
-                      value={partnerKey}
-                      onChange={(e) => setPartnerKey(e.target.value)}
-                      placeholder="Nhập secret key nếu có"
-                      style={{ width: "100%", height: "32px", fontSize: "11px", borderRadius: "6px", border: "1px solid #CBD5E1", padding: "0 8px", marginTop: "3px" }}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Submit Button */}
-            <button 
-              type="submit"
-              disabled={loading}
-              style={{
-                marginTop: "6px",
-                height: "46px",
-                backgroundColor: "#EE4D2D",
-                color: "#FFFFFF",
-                border: "none",
-                borderRadius: "10px",
-                fontWeight: "700",
-                fontSize: "13px",
-                cursor: loading ? "wait" : "pointer",
-                boxShadow: "0 4px 12px rgba(238, 77, 45, 0.35)",
-                opacity: loading ? 0.7 : 1,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px"
-              }}
-            >
-              {loading ? (
-                <>
-                  <RefreshCw size={15} className="spin" />
-                  <span>Đang kết nối & lấy dữ liệu Shopee API...</span>
-                </>
-              ) : (
-                <>
-                  <Store size={16} />
-                  <span>Đăng Nhập & Lấy Dữ Liệu Shopee API</span>
-                </>
-              )}
-            </button>
-
-            {/* Official OAuth Link */}
-            <div style={{ textAlign: "center", marginTop: "6px" }}>
               <button
                 type="button"
                 onClick={handleOAuthRedirect}
                 disabled={loading}
                 style={{
-                  background: "none",
+                  width: "100%",
+                  height: "46px",
+                  backgroundColor: "#EE4D2D",
+                  color: "#FFFFFF",
                   border: "none",
-                  color: "#EE4D2D",
-                  fontSize: "11px",
-                  fontWeight: "700",
-                  cursor: "pointer",
-                  display: "inline-flex",
+                  borderRadius: "10px",
+                  fontWeight: "800",
+                  fontSize: "13px",
+                  cursor: loading ? "wait" : "pointer",
+                  display: "flex",
                   alignItems: "center",
-                  gap: "4px"
+                  justifyContent: "center",
+                  gap: "8px",
+                  boxShadow: "0 4px 12px rgba(238, 77, 45, 0.35)",
                 }}
               >
-                <ExternalLink size={12} />
-                <span>Ủy quyền trực tiếp qua Shopee Open Platform OAuth 2.0</span>
+                {loading ? (
+                  <>
+                    <RefreshCw size={15} className="spin" />
+                    <span>Đang chuyển hướng sang Shopee...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShopeeLogo size={20} />
+                    <span>🛍️ Đăng Nhập Kênh Người Bán Shopee</span>
+                    <ExternalLink size={14} />
+                  </>
+                )}
               </button>
             </div>
-          </form>
+
+            {/* Divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", margin: "2px 0" }}>
+              <div style={{ flex: 1, height: "1px", backgroundColor: "#E2E8F0" }}></div>
+              <span style={{ fontSize: "10px", fontWeight: "700", color: "#94A3B8" }}>HOẶC KẾT NỐI NHANH QUA MÃ SHOP</span>
+              <div style={{ flex: 1, height: "1px", backgroundColor: "#E2E8F0" }}></div>
+            </div>
+
+            {/* Quick Connect Form */}
+            <form onSubmit={handleShopeeLogin} style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              {/* Shop ID */}
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Mã Shop ID (Shopee Seller Shop ID)
+                </label>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "10px",
+                  padding: "0 12px",
+                  height: "42px",
+                  backgroundColor: "#FFFFFF"
+                }}>
+                  <Store size={15} color="#94A3B8" />
+                  <input 
+                    type="number" 
+                    value={shopId}
+                    onChange={(e) => setShopId(e.target.value)}
+                    placeholder="Ví dụ: 8829104" 
+                    required
+                    style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
+                  />
+                </div>
+              </div>
+
+              {/* Shop Name */}
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Tên Gian Hàng (Shop Name)
+                </label>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "10px",
+                  padding: "0 12px",
+                  height: "42px",
+                  backgroundColor: "#FFFFFF"
+                }}>
+                  <Box size={15} color="#94A3B8" />
+                  <input 
+                    type="text" 
+                    value={shopName}
+                    onChange={(e) => setShopName(e.target.value)}
+                    placeholder="Ví dụ: SPX Flagship Store VN" 
+                    required
+                    style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
+                  />
+                </div>
+              </div>
+
+              {/* Seller Username */}
+              <div>
+                <label style={{ fontSize: "11px", fontWeight: "700", color: "#334155", display: "block", marginBottom: "4px" }}>
+                  Tên Đăng Nhập Shopee (Username)
+                </label>
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  border: "1px solid #E2E8F0",
+                  borderRadius: "10px",
+                  padding: "0 12px",
+                  height: "42px",
+                  backgroundColor: "#FFFFFF"
+                }}>
+                  <User size={15} color="#94A3B8" />
+                  <input 
+                    type="text" 
+                    value={sellerUsername}
+                    onChange={(e) => setSellerUsername(e.target.value)}
+                    placeholder="Ví dụ: shopee_seller_vn" 
+                    style={{ border: "none", outline: "none", width: "100%", marginLeft: "8px", fontSize: "12px", color: "#1E293B" }}
+                  />
+                </div>
+              </div>
+
+              {/* Advanced Partner Key Toggle */}
+              <div style={{ marginTop: "2px" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(!showAdvanced)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: "0",
+                    color: "#64748B",
+                    fontSize: "11px",
+                    fontWeight: "600",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px"
+                  }}
+                >
+                  <span>⚙️ Cấu hình Partner ID & Key nâng cao (Tùy chọn)</span>
+                  <ChevronDown size={14} style={{ transform: showAdvanced ? "rotate(180deg)" : "none", transition: "transform 0.2s" }} />
+                </button>
+
+                {showAdvanced && (
+                  <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "8px", padding: "10px", backgroundColor: "#F8FAFC", borderRadius: "8px", border: "1px solid #E2E8F0" }}>
+                    <div>
+                      <label style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }}>Shopee Partner ID</label>
+                      <input 
+                        type="number"
+                        value={partnerId}
+                        onChange={(e) => setPartnerId(e.target.value)}
+                        placeholder="Mặc định: 1008291"
+                        style={{ width: "100%", height: "32px", fontSize: "11px", borderRadius: "6px", border: "1px solid #CBD5E1", padding: "0 8px", marginTop: "3px" }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }}>Shopee Partner Key (Secret)</label>
+                      <input 
+                        type="password"
+                        value={partnerKey}
+                        onChange={(e) => setPartnerKey(e.target.value)}
+                        placeholder="Nhập secret key nếu có"
+                        style={{ width: "100%", height: "32px", fontSize: "11px", borderRadius: "6px", border: "1px solid #CBD5E1", padding: "0 8px", marginTop: "3px" }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Submit Button */}
+              <button 
+                type="submit"
+                disabled={loading}
+                style={{
+                  marginTop: "4px",
+                  height: "44px",
+                  backgroundColor: "#FFFFFF",
+                  color: "#EE4D2D",
+                  border: "1.5px solid #EE4D2D",
+                  borderRadius: "10px",
+                  fontWeight: "700",
+                  fontSize: "12px",
+                  cursor: loading ? "wait" : "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "6px"
+                }}
+              >
+                {loading ? (
+                  <>
+                    <RefreshCw size={14} className="spin" />
+                    <span>Đang kết nối & lấy dữ liệu...</span>
+                  </>
+                ) : (
+                  <>
+                    <Store size={15} />
+                    <span>⚡ Kết Nối Nhanh & Lấy Toàn Bộ Đơn Hàng</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
         )}
 
         {/* TAB 2: INTERNAL ADMIN LOGIN */}

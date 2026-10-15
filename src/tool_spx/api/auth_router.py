@@ -115,7 +115,7 @@ class ShopeeSellerLoginRequest(BaseModel):
     auth_code: Optional[str] = None
 
 @router.get("/shopee-oauth-url")
-def get_shopee_oauth_url(db: Session = Depends(get_db)):
+def get_shopee_oauth_url(redirect_url: Optional[str] = None, db: Session = Depends(get_db)):
     """Generate official Shopee Open Platform Shop Authorization URL."""
     from tool_spx.db.models import ShopeeAppConfig
     from tool_spx.security.encryption import decrypt_secret
@@ -124,7 +124,7 @@ def get_shopee_oauth_url(db: Session = Depends(get_db)):
     config = db.query(ShopeeAppConfig).first()
     partner_id = config.partner_id if config else 1008291
     partner_key = decrypt_secret(config.partner_key_encrypted) if config and config.partner_key_encrypted else "spk_live_shopee_secret_master_key_88"
-    redirect_url = config.redirect_url if config else "http://127.0.0.1:8000/api/shopee/callback"
+    final_redirect = redirect_url or (config.redirect_url if config else "http://127.0.0.1:8000/api/shopee/callback")
 
     client = ShopeeClient(
         partner_id=partner_id,
@@ -132,12 +132,12 @@ def get_shopee_oauth_url(db: Session = Depends(get_db)):
         environment=config.api_environment if config else "live",
         mock_mode=False
     )
-    auth_url = client.generate_auth_url(redirect_url)
+    auth_url = client.generate_auth_url(final_redirect)
     return {
         "success": True,
         "auth_url": auth_url,
         "partner_id": partner_id,
-        "redirect_url": redirect_url
+        "redirect_url": final_redirect
     }
 
 @router.post("/shopee-seller-login")

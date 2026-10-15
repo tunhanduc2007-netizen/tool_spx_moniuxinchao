@@ -283,7 +283,25 @@ export const authAPI = {
       method: "POST",
       body: JSON.stringify(data)
     }),
-  getShopeeOAuthUrl: () => request("/api/auth/shopee-oauth-url"),
+  getShopeeOAuthUrl: (redirectUrl) => {
+    const redirect = redirectUrl || (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8000");
+    return request(`/api/auth/shopee-oauth-url?redirect_url=${encodeURIComponent(redirect)}`);
+  },
+  handleOAuthCallback: async (code, shop_id) => {
+    try {
+      const res = await request(`/api/shopee/callback?code=${encodeURIComponent(code)}&shop_id=${encodeURIComponent(shop_id)}`);
+      const shopName = res?.shop_name || `Shopee Shop #${shop_id}`;
+      const loginRes = await authAPI.shopeeSellerLogin({
+        shop_id: Number(shop_id),
+        shop_name: shopName,
+      });
+      return loginRes;
+    } catch (err) {
+      return handleOfflineFallback(`/api/auth/shopee-seller-login`, {
+        body: JSON.stringify({ shop_id: Number(shop_id), shop_name: `Gian Hàng Shopee #${shop_id}` })
+      });
+    }
+  },
   logout: () => {
     removeToken();
     return request("/api/auth/logout", { method: "POST" }).catch(() => ({}));

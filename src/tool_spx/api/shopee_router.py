@@ -115,6 +115,7 @@ def get_authorization_url(
 async def shopee_oauth_callback(
     code: str,
     shop_id: int,
+    request: Request,
     db: Session = Depends(get_db)
 ):
     """Official callback endpoint receiving authorization code from Shopee."""
@@ -162,10 +163,22 @@ async def shopee_oauth_callback(
         shop.last_error = None
 
     db.commit()
+    db.refresh(shop)
+
+    # Immediately sync orders & products from Shopee API
+    try:
+        await sync_orders_for_shop(db, shop.id, triggered_by="OAUTH_CALLBACK")
+        await sync_products_for_shop(db, shop.id)
+    except Exception as e:
+        pass
+
+    from fastapi.responses import RedirectResponse
+    if "text/html" in request.headers.get("accept", ""):
+        return RedirectResponse(url=f"/#dashboard?shop_id={shop_id}")
 
     return {
         "success": True,
-        "message": f"Shop {shop_name} ({shop_id}) đã kết nối thành công với hệ thống!",
+        "message": f"Shop {shop_name} ({shop_id}) đã kết nối thành công với hệ thống và đồng bộ toàn bộ đơn hàng!",
         "shop_id": shop_id,
         "shop_name": shop_name
     }
