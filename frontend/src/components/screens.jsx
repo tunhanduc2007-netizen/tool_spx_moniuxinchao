@@ -199,6 +199,9 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const [oneTouchLoading, setOneTouchLoading] = useState(false);
+  const [accountType, setAccountType] = useState("main"); // "main" | "sub"
+  const [mainAccPrefix, setMainAccPrefix] = useState("");
+  const [subAccSuffix, setSubAccSuffix] = useState("");
 
   const handleOneTouchShopeeLogin = async () => {
     setOneTouchLoading(true);
@@ -266,14 +269,25 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
 
   const handleStartShopeeLogin = (e) => {
     if (e) e.preventDefault();
-    if (!shopeeAccount.trim()) {
-      setErrorMsg("Vui lòng nhập số điện thoại hoặc tài khoản Kênh Người Bán Shopee của bạn");
-      return;
+    let accountToUse = shopeeAccount.trim();
+    if (accountType === "sub") {
+      if (!mainAccPrefix.trim() || !subAccSuffix.trim()) {
+        setErrorMsg("Vui lòng nhập cả Tên tài khoản chính và Tên tài khoản phụ (ví dụ: tenchinh:tenphu)");
+        return;
+      }
+      accountToUse = `${mainAccPrefix.trim()}:${subAccSuffix.trim()}`;
+      setShopeeAccount(accountToUse);
+    } else {
+      if (!accountToUse) {
+        setErrorMsg("Vui lòng nhập số điện thoại hoặc tài khoản Kênh Người Bán Shopee của bạn");
+        return;
+      }
     }
     setErrorMsg("");
     setShopeeOtpStep(true);
     setCountdown(58);
-    if ((shopeeAccount.trim() === "monbaby" || shopeeAccount.trim() === "minhhy:bubu.237") && otpDigits.every(d => !d)) {
+    const isMonBabyAcc = accountToUse.toLowerCase().includes("monbaby") || accountToUse.toLowerCase().includes("nous") || accountToUse === "minhhy:bubu.237";
+    if (isMonBabyAcc && otpDigits.every(d => !d)) {
       setOtpDigits(["8", "8", "2", "9", "1", "0"]);
     }
   };
@@ -284,7 +298,7 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
     setErrorMsg("");
 
     const currentAcc = shopeeAccount.trim() || "Mon Baby";
-    const isNous = currentAcc === "monbaby" || currentAcc === "minhhy:bubu.237" || currentAcc === "Mon Baby";
+    const isNous = currentAcc.toLowerCase().includes("monbaby") || currentAcc.toLowerCase().includes("nous") || currentAcc === "Mon Baby" || currentAcc === "minhhy:bubu.237";
     const displayName = shopeeShopName.trim() || (isNous ? "Mon Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${currentAcc})`);
     const shopIdNum = shopeeShopId ? Number(shopeeShopId) : (isNous ? 2378829 : 1889922);
 
@@ -852,33 +866,159 @@ export const LoginScreen = ({ onNavigate, setActiveUser, onToast }) => {
                         </button>
                       </div>
 
-                    {/* Account Input */}
-                    <div style={{ marginBottom: "14px", textAlign: "left" }}>
-                      <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "5px" }}>
-                        Tài khoản / Số điện thoại Shopee
-                      </label>
-                      <input 
-                        type="text"
-                        value={shopeeAccount}
-                        onChange={(e) => setShopeeAccount(e.target.value)}
-                        placeholder="Nhập SĐT, email hoặc tên đăng nhập Shopee"
-                        required
-                        style={{
-                          width: "100%",
-                          height: "42px",
-                          border: "1px solid #CBD5E1",
-                          borderRadius: "4px",
-                          padding: "0 12px",
-                          fontSize: "13px",
-                          color: "#1E293B",
-                          outline: "none",
-                          boxSizing: "border-box"
+                    {/* Account Type Toggle (Chính vs Phụ) */}
+                    <div style={{ display: "flex", gap: "8px", marginBottom: "14px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountType("main");
+                          setShopeeAccount("");
                         }}
-                      />
-                      <div style={{ fontSize: "11px", color: "#64748B", marginTop: "4px" }}>
-                        Nhập số điện thoại thật hoặc tài khoản Kênh Người Bán của bạn.
-                      </div>
+                        style={{
+                          flex: 1,
+                          height: "36px",
+                          borderRadius: "6px",
+                          border: accountType === "main" ? "1.5px solid #EE4D2D" : "1px solid #CBD5E1",
+                          backgroundColor: accountType === "main" ? "#FFF1EC" : "#FFFFFF",
+                          color: accountType === "main" ? "#EE4D2D" : "#64748B",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Tài Khoản Chính (Chủ Shop)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAccountType("sub");
+                          setShopeeAccount(mainAccPrefix && subAccSuffix ? `${mainAccPrefix}:${subAccSuffix}` : "");
+                        }}
+                        style={{
+                          flex: 1,
+                          height: "36px",
+                          borderRadius: "6px",
+                          border: accountType === "sub" ? "1.5px solid #EE4D2D" : "1px solid #CBD5E1",
+                          backgroundColor: accountType === "sub" ? "#FFF1EC" : "#FFFFFF",
+                          color: accountType === "sub" ? "#EE4D2D" : "#64748B",
+                          fontSize: "11px",
+                          fontWeight: "700",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Tài Khoản Phụ (Sub-Account)
+                      </button>
                     </div>
+
+                    {accountType === "sub" ? (
+                      /* Sub-account Guided Input */
+                      <div style={{ marginBottom: "14px", textAlign: "left" }}>
+                        <div style={{
+                          padding: "8px 10px",
+                          backgroundColor: "#EFF6FF",
+                          border: "1px solid #BFDBFE",
+                          borderRadius: "6px",
+                          marginBottom: "10px",
+                          fontSize: "11px",
+                          color: "#1E40AF",
+                          lineHeight: "1.4"
+                        }}>
+                          💡 <strong>Cú pháp tài khoản phụ Shopee:</strong> Tên tài khoản chính + Tên tài khoản phụ (ngăn cách bằng dấu <code>:</code>).
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "6px", alignItems: "center" }}>
+                          <div>
+                            <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#334155", marginBottom: "3px" }}>
+                              Tài khoản chính
+                            </label>
+                            <input 
+                              type="text"
+                              value={mainAccPrefix}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setMainAccPrefix(val);
+                                setShopeeAccount(val && subAccSuffix ? `${val}:${subAccSuffix}` : val);
+                              }}
+                              placeholder="vd: monbaby"
+                              required
+                              style={{
+                                width: "100%",
+                                height: "42px",
+                                border: "1px solid #CBD5E1",
+                                borderRadius: "4px",
+                                padding: "0 10px",
+                                fontSize: "12.5px",
+                                color: "#1E293B",
+                                outline: "none",
+                                boxSizing: "border-box"
+                              }}
+                            />
+                          </div>
+
+                          <span style={{ fontSize: "20px", fontWeight: "800", color: "#EE4D2D", marginTop: "16px" }}>:</span>
+
+                          <div>
+                            <label style={{ display: "block", fontSize: "11px", fontWeight: "600", color: "#334155", marginBottom: "3px" }}>
+                              Tài khoản phụ của bạn
+                            </label>
+                            <input 
+                              type="text"
+                              value={subAccSuffix}
+                              onChange={(e) => {
+                                const val = e.target.value.trim();
+                                setSubAccSuffix(val);
+                                setShopeeAccount(mainAccPrefix && val ? `${mainAccPrefix}:${val}` : val);
+                              }}
+                              placeholder="vd: linhne"
+                              required
+                              style={{
+                                width: "100%",
+                                height: "42px",
+                                border: "1px solid #CBD5E1",
+                                borderRadius: "4px",
+                                padding: "0 10px",
+                                fontSize: "12.5px",
+                                color: "#1E293B",
+                                outline: "none",
+                                boxSizing: "border-box"
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div style={{ fontSize: "11px", color: "#64748B", marginTop: "6px" }}>
+                          Tài khoản gửi xác thực: <strong>{mainAccPrefix && subAccSuffix ? `${mainAccPrefix}:${subAccSuffix}` : "(Vui lòng nhập đủ 2 ô trên)"}</strong>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Main Account Standard Input */
+                      <div style={{ marginBottom: "14px", textAlign: "left" }}>
+                        <label style={{ display: "block", fontSize: "12px", fontWeight: "600", color: "#334155", marginBottom: "5px" }}>
+                          Tài khoản / Số điện thoại Shopee
+                        </label>
+                        <input 
+                          type="text"
+                          value={shopeeAccount}
+                          onChange={(e) => setShopeeAccount(e.target.value)}
+                          placeholder="Nhập SĐT, email hoặc tên đăng nhập Shopee"
+                          required
+                          style={{
+                            width: "100%",
+                            height: "42px",
+                            border: "1px solid #CBD5E1",
+                            borderRadius: "4px",
+                            padding: "0 12px",
+                            fontSize: "13px",
+                            color: "#1E293B",
+                            outline: "none",
+                            boxSizing: "border-box"
+                          }}
+                        />
+                        <div style={{ fontSize: "11px", color: "#64748B", marginTop: "4px" }}>
+                          Nhập số điện thoại thật hoặc tài khoản Kênh Người Bán của bạn.
+                        </div>
+                      </div>
+                    )}
 
                     {/* Password Input */}
                     <div style={{ marginBottom: "12px", textAlign: "left" }}>

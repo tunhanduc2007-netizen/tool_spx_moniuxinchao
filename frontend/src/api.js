@@ -880,7 +880,7 @@ function handleOfflineFallback(endpoint, options, originalErr) {
   if (endpoint.includes("/api/auth/shopee-seller-login")) {
     const body = options.body ? JSON.parse(options.body) : {};
     const sellerUsername = body.seller_username || "Mon Baby";
-    const isNousDemo = sellerUsername === "monbaby" || sellerUsername === "minhhy:bubu.237" || sellerUsername === "Mon Baby";
+    const isNousDemo = sellerUsername.toLowerCase().includes("monbaby") || sellerUsername.toLowerCase().includes("nous") || sellerUsername === "Mon Baby" || sellerUsername === "minhhy:bubu.237";
     const shopName = body.shop_name || (isNousDemo ? "Mon Baby - Đại Lý Chính Hãng NOUS" : `Gian Hàng Shopee (${sellerUsername})`);
     const shopId = body.shop_id || (isNousDemo ? 2378829 : Math.floor(1000000 + Math.random() * 8999999));
     
